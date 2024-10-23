@@ -1,4 +1,5 @@
-# 0. Provide valid configuration in configuration.json
+# 0. Provide valid configuration in config.json
+Provide list of recipients in 
 
 # 1. Create a build directory for the C++ project
 mkdir build && cd build
