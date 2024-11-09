@@ -16,4 +16,9 @@ find_package(nlohmann_json REQUIRED)
 
 add_executable(email_client src/main.cpp)
 
+target_include_directories(email_client PUBLIC src)
+
+add_subdirectory(src/backend)
+add_subdirectory(src/frontend)
+
 target_link_libraries(email_client ${VMIME_LIBRARIES} nlohmann_json::nlohmann_json)
