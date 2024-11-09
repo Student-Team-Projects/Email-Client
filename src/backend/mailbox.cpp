@@ -1,5 +1,9 @@
 #include "mailbox.h"
 
+#include <iostream>
+#include <string>
+#include <fstream>
+
 #include <vmime/vmime.hpp>
 
 class certificateVerifier : public vmime::security::cert::defaultCertificateVerifier {
@@ -34,7 +38,7 @@ Mailbox::Mailbox(const std::string &email, const std::string &password)
   : email(email), password(password)
 {}
 
-void Mailbox::send(const Message &message)
+void Mailbox::send(const Message &message) noexcept
 {
   try {
     vmime::addressList to;
@@ -64,13 +68,11 @@ void Mailbox::send(const Message &message)
     transport->connect();
     transport->send(mb.construct());
     transport->disconnect();
-  } 
+  }
   catch (vmime::exception& e) {
     std::cerr << "Error sending email: " << e.what() << std::endl;
-    return 1;
-  } 
+  }
   catch (std::exception& e) {
     std::cerr << "General error: " << e.what() << std::endl;
-    return 1;
   }
 }

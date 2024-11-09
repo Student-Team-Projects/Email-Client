@@ -1,6 +1,10 @@
+#include <iostream>
+#include <fstream>
+
 #include <nlohmann/json.hpp>
 
 #include "backend/mailbox.h"
+#include "backend/mail_types.h"
 
 int main() {
 	std::ifstream configFile("config.json");
@@ -25,6 +29,6 @@ int main() {
 	std::string body = "This is a test email";
 
 	Mailbox mailbox(senderEmail, appPassword);
-	Message message(recipients, subject, body);
+	Message message{recipients, subject, body};
 	mailbox.send(message);
 }
