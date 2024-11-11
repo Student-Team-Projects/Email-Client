@@ -33,7 +33,10 @@ link_directories(${VMIME_LIBRARY_DIRS})
 
 find_package(nlohmann_json REQUIRED)
 
-add_executable(email_client src/main.cpp)
+add_executable(email_client 
+  src/main.cpp
+  src/app.cpp
+)
 
 target_include_directories(email_client PUBLIC src)
 
