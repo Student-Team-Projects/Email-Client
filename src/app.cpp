@@ -30,6 +30,15 @@ void application::change_state(state new_state){
     current_state = new_state;
 }
 
+bool application::copy_selected_text(ftxui::Event event) {
+    if (event == ftxui::Event::Special("\x19")) { //Ctrl+Y
+        std::string command = "echo '" + current_draft + "' | xclip -selection clipboard";
+        std::system(command.c_str());
+        return true;
+    }
+    return false;
+}
+
 application::application() :
     current_state(state::INBOX),
     current_draft(""),
@@ -50,11 +59,13 @@ application::application() :
             ftxui::Button("mail 4 sent to Hubert", []{})
         })
     ),
-    main_component(ftxui::Container::Vertical({
+
+    main_component(ftxui::CatchEvent(ftxui::Container::Vertical({
         email_draft | ftxui::Maybe([&]{return current_state == state::EMAIL_DRAFT;}),
         sent_items  | ftxui::Maybe([&]{return current_state == state::SENT_ITEMS;}),
         inbox       | ftxui::Maybe([&]{return current_state == state::INBOX;})
-    })),
+    }),[&](ftxui::Event event){return copy_selected_text(event);})),
+    
     control_panel(ftxui::Container::Vertical({
         ftxui::Container::Horizontal({
             ftxui::Button("Send Email", []{}) 

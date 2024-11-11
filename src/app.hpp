@@ -13,6 +13,7 @@ private:
         SENT_ITEMS
     };
     void change_state(state);
+    bool copy_selected_text(ftxui::Event);
 
     state current_state;
     std::string current_draft;
@@ -23,4 +24,5 @@ private:
     ftxui::Component control_panel;
     ftxui::Component layout;
     ftxui::ScreenInteractive screen;
+    
 };
