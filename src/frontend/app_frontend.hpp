@@ -15,6 +15,8 @@ public:
     Application_frontend(Application& app);
     void Loop();
 private:
+    bool Copy_selected_text(ftxui::Event event);
+
     Application& app;
     Email_draft current_email_draft;
     ftxui::Component email_draft_layout;
