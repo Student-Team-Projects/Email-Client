@@ -36,6 +36,7 @@ find_package(nlohmann_json REQUIRED)
 add_executable(email_client 
   src/main.cpp
   src/app.cpp
+  src/frontend/app_frontend.cpp
 )
 
 target_include_directories(email_client PUBLIC src)
