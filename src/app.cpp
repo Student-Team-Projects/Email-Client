@@ -17,4 +17,8 @@ void Application::Change_state(State new_state){
 
 Application::Application() :
     current_state(State::INBOX)
+<<<<<<< HEAD
 {}
+=======
+{}
+>>>>>>> fc83017f94d724256951f3d02c3404b252eff387
