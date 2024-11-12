@@ -61,11 +61,11 @@ Application_frontend::Application_frontend(Application& app) :
         })
     ),
     
-    main_component(ftxui::Container::Vertical({
+    main_component(ftxui::CatchEvent(ftxui::Container::Vertical({
         email_draft_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
         sent_items  | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SENT_ITEMS);}),
         inbox       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::INBOX);})
-    })),
+    }), [&](ftxui::Event event){return Copy_selected_text(event);})),
     
     control_panel(ftxui::Container::Vertical({
         ftxui::Container::Horizontal({
@@ -95,4 +95,13 @@ Application_frontend::Application_frontend(Application& app) :
 
 void Application_frontend::Loop(){
     screen.Loop(layout);
+}
+
+bool Application_frontend::Copy_selected_text(ftxui::Event event) {
+    if (event == ftxui::Event::Special("\x19")) { //Ctrl+Y
+        std::string command = "echo '" + current_email_draft.message + "' | xclip -selection clipboard";
+        std::system(command.c_str());
+        return true;
+    }
+    return false;
 }
