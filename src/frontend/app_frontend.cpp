@@ -69,7 +69,10 @@ Application_frontend::Application_frontend(Application& app) :
     
     control_panel(ftxui::Container::Vertical({
         ftxui::Container::Horizontal({
-            ftxui::Button("Send Email", []{}) 
+            ftxui::Button("Send Email", [&]{
+                app.Send_email(current_email_draft);
+                current_email_draft = Email_draft();
+            }) 
             | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
             ftxui::Button("Reset", [&]{
                 current_email_draft = Email_draft();
