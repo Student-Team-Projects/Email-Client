@@ -50,4 +50,5 @@ target_link_libraries(email_client
   PRIVATE ftxui::component 
   ${VMIME_LIBRARIES}
   nlohmann_json::nlohmann_json
+  PRIVATE sqlite3
 )
