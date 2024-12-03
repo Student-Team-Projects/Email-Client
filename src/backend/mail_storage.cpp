@@ -1,33 +1,13 @@
 #include "mail_storage.h"
 #include <iostream>
+#include <filesystem>
 
 std::string get_db_path(const std::string &email) noexcept
 {
   return "data/" + email + ".db";
 }
 
-sqlite3 *open_db(const std::string &email) noexcept
-{
-  sqlite3* db;
-
-  std::string db_path = get_db_path(email);
-
-  bool needs_init = !std::filesystem::exists(db_path);
-
-  int rc = sqlite3_open(db_path, &db);
-  if (rc) {
-      std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
-      return rc;
-  }
-
-  if (needs_init) {
-      init_db(db);
-  }
-
-  return db;
-}
-
-void init_db(sqlite* db) noexcept
+void init_db(sqlite3* db) noexcept
 {
   char* err_msg = nullptr;
   const char* sql = "CREATE TABLE MailsReceived("
@@ -42,6 +22,28 @@ void init_db(sqlite* db) noexcept
       std::cerr << "SQL error: " << err_msg << std::endl;
       sqlite3_free(err_msg);
   }
+}
+
+
+sqlite3 *open_db(const std::string &email) noexcept
+{
+  sqlite3* db;
+
+  std::string db_path = get_db_path(email);
+
+  bool needs_init = !std::filesystem::exists(db_path);
+
+  int rc = sqlite3_open(db_path.c_str(), &db);
+  if (rc) {
+      std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
+      return nullptr;
+  }
+
+  if (needs_init) {
+      init_db(db);
+  }
+
+  return db;
 }
 
 std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
