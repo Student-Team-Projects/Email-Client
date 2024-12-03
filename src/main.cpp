@@ -29,6 +29,5 @@ int main() {
 	std::string body = "This is a test email";
 
 	Mailbox mailbox(senderEmail, appPassword);
-	Message message{recipients, subject, body};
-	mailbox.send(message);
+	auto messages = mailbox.retrieve_emails(1);
 }
