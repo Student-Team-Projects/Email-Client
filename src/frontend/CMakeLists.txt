@@ -1,1 +1,1 @@
-# Add dependencies here like this: target_sources(email_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/mailbox.cpp)
+target_sources(email_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app_frontend.cpp)

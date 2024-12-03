@@ -1,0 +1,110 @@
+#include "frontend/app_frontend.hpp"
+#include "app.hpp"
+
+ftxui::InputOption mail_input_style(const std::string& placeholder) {
+    ftxui::InputOption option;
+    option.content = "Type your email here";
+    option.placeholder = placeholder;
+    option.transform = [](ftxui::InputState state) {
+        state.element |= ftxui::borderEmpty;
+        state.element |= ftxui::color(ftxui::Color::White);
+
+        if (state.is_placeholder) {
+            state.element |= ftxui::dim;
+        }
+
+        if (state.focused) {
+            state.element |= ftxui::bgcolor(ftxui::Color::Grey35);
+        }
+        state.element |= ftxui::bgcolor(ftxui::Color::Black);
+        return state.element;
+    };
+
+    return option;
+}
+
+Application_frontend::Application_frontend(Application& app) :
+    app(app),
+    
+    current_email_draft(),
+    
+    email_draft_layout( ftxui::Container::Vertical({
+        ftxui::Input(
+            &current_email_draft.recipient,
+            mail_input_style("To:")
+        ),
+        ftxui::Input(
+            &current_email_draft.subject,
+            mail_input_style("Subject:")
+        ),
+        ftxui::Input(
+            &current_email_draft.message,
+            mail_input_style("Email")
+        )
+    })),
+    
+    inbox(
+        ftxui::Container::Vertical({
+            ftxui::Button("mail 1 from Kuba", []{}),
+            ftxui::Button("mail 2 from Grzegorz", []{}),
+            ftxui::Button("mail 3 from Maciej", []{}),
+            ftxui::Button("mail 4 from Hubert", []{})
+        })
+    ),
+    
+    sent_items( 
+        ftxui::Container::Vertical({
+            ftxui::Button("mail 1 sent to Kuba", []{}),
+            ftxui::Button("mail 2 sent to Grzegorz", []{}),
+            ftxui::Button("mail 3 sent to Maciej", []{}),
+            ftxui::Button("mail 4 sent to Hubert", []{})
+        })
+    ),
+    
+    main_component(ftxui::CatchEvent(ftxui::Container::Vertical({
+        email_draft_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
+        sent_items  | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SENT_ITEMS);}),
+        inbox       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::INBOX);})
+    }), [&](ftxui::Event event){return Copy_selected_text(event);})),
+    
+    control_panel(ftxui::Container::Vertical({
+        ftxui::Container::Horizontal({
+            ftxui::Button("Send Email", [&]{
+                app.Send_email(current_email_draft);
+                current_email_draft = Email_draft();
+            }) 
+            | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
+            ftxui::Button("Reset", [&]{
+                current_email_draft = Email_draft();
+            }) | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);})
+        }),
+        ftxui::Container::Horizontal({
+            ftxui::Button("New mail", [&]{
+                app.Change_state(Application::State::EMAIL_DRAFT);
+            }),
+            ftxui::Button("Inbox", [&]{
+                app.Change_state(Application::State::INBOX);
+            }),
+            ftxui::Button("Sent items", [&]{
+                app.Change_state(Application::State::SENT_ITEMS);
+            })
+        })
+    })),
+    
+    layout(ftxui::Container::Vertical({main_component, control_panel})),
+
+    screen(ftxui::ScreenInteractive::Fullscreen())
+{}
+
+void Application_frontend::Loop(){
+    screen.Loop(layout);
+}
+
+bool Application_frontend::Copy_selected_text(ftxui::Event event) {
+    if (event == ftxui::Event::Special("\x19")) { //Ctrl+Y
+        std::string command = "echo '" + current_email_draft.message + "' | xclip -selection clipboard";
+        std::system(command.c_str());
+        return true;
+    }
+    return false;
+}
