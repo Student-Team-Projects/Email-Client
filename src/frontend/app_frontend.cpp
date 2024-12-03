@@ -27,6 +27,10 @@ Application_frontend::Application_frontend(Application& app) :
     app(app),
     
     current_email_draft(),
+    current_received_email(),
+    current_send_email(),
+    received_email_vector(fetch_received_emails()),
+    send_email_vector(fetch_send_emails()),
     
     email_draft_layout( ftxui::Container::Vertical({
         ftxui::Input(
@@ -42,29 +46,57 @@ Application_frontend::Application_frontend(Application& app) :
             mail_input_style("Email")
         )
     })),
+    received_email_layout( ftxui::Container::Vertical({
+        //ftxui::Input( //change to static Input
+            //&current_received_email.sender,
+            //mail_input_style("From:")
+        //),
+        ftxui::Input( //change to static Input
+            &current_received_email.subject,
+            mail_input_style("Subject:")
+        ),
+        ftxui::Input( //change to static Input
+            &current_received_email.body,
+            mail_input_style("Email")
+        )
+    })),
     
     inbox(
         ftxui::Container::Vertical({
-            ftxui::Button("mail 1 from Kuba", []{}),
-            ftxui::Button("mail 2 from Grzegorz", []{}),
-            ftxui::Button("mail 3 from Maciej", []{}),
-            ftxui::Button("mail 4 from Hubert", []{})
+            [&] {
+                std::vector<ftxui::Component> buttons;
+                for (size_t i = 0; i < std::min(4,(int)received_email_vector.size()); ++i) {
+                    buttons.push_back(ftxui::Button(received_email_vector[i].subject, [&, i] {
+                    current_received_email = received_email_vector[i];
+                    app.Change_state(Application::State::RECEIVED_EMAIL);
+                }));
+            }
+            return buttons;
+            }()
+            
         })
     ),
     
     sent_items( 
         ftxui::Container::Vertical({
-            ftxui::Button("mail 1 sent to Kuba", []{}),
-            ftxui::Button("mail 2 sent to Grzegorz", []{}),
-            ftxui::Button("mail 3 sent to Maciej", []{}),
-            ftxui::Button("mail 4 sent to Hubert", []{})
+            [&] {
+                std::vector<ftxui::Component> buttons;
+                for (size_t i = 0; i < std::min(4,(int)send_email_vector.size()); ++i) {
+                    buttons.push_back(ftxui::Button(send_email_vector[i].subject, [&, i] {
+                    current_send_email = send_email_vector[i];
+                    app.Change_state(Application::State::RECEIVED_EMAIL);
+                }));
+            }
+            return buttons;
+            }()
         })
     ),
     
     main_component(ftxui::CatchEvent(ftxui::Container::Vertical({
         email_draft_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
         sent_items  | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SENT_ITEMS);}),
-        inbox       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::INBOX);})
+        inbox       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::INBOX);}),
+        received_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::RECEIVED_EMAIL);})
     }), [&](ftxui::Event event){return Copy_selected_text(event);})),
     
     control_panel(ftxui::Container::Vertical({
@@ -83,9 +115,11 @@ Application_frontend::Application_frontend(Application& app) :
                 app.Change_state(Application::State::EMAIL_DRAFT);
             }),
             ftxui::Button("Inbox", [&]{
+                received_email_vector = fetch_received_emails();
                 app.Change_state(Application::State::INBOX);
             }),
             ftxui::Button("Sent items", [&]{
+                send_email_vector = fetch_send_emails();
                 app.Change_state(Application::State::SENT_ITEMS);
             })
         })
@@ -98,6 +132,16 @@ Application_frontend::Application_frontend(Application& app) :
 
 void Application_frontend::Loop(){
     screen.Loop(layout);
+}
+
+std::vector<Message> Application_frontend::fetch_received_emails(){
+    std::vector<Message> emails(5,{{},"received mail","received body"});
+    return {emails};
+}
+
+std::vector<Message> Application_frontend::fetch_send_emails(){
+    std::vector<Message> emails(5,{{},"send subject","send body"});
+    return {emails};
 }
 
 bool Application_frontend::Copy_selected_text(ftxui::Event event) {
