@@ -1,4 +1,5 @@
 #include "frontend/app_frontend.hpp"
+#include "frontend/select_input.cpp"
 #include "app.hpp"
 
 ftxui::InputOption mail_input_style(const std::string& placeholder) {
@@ -37,9 +38,13 @@ Application_frontend::Application_frontend(Application& app) :
             &current_email_draft.subject,
             mail_input_style("Subject:")
         ),
-        ftxui::Input(
+        SelectableInput(
             &current_email_draft.message,
             mail_input_style("Email")
+        ),
+        SelectableText(
+            "\nGet Email client for Arch!",
+            mail_input_style("")
         )
     })),
     
@@ -101,10 +106,10 @@ void Application_frontend::Loop(){
 }
 
 bool Application_frontend::Copy_selected_text(ftxui::Event event) {
-    if (event == ftxui::Event::Special("\x19")) { //Ctrl+Y
-        std::string command = "echo '" + current_email_draft.message + "' | xclip -selection clipboard";
-        std::system(command.c_str());
-        return true;
-    }
+    // if (event == ftxui::Event::Special("\x19")) { //Ctrl+Y
+    //     std::string command = "echo '" + current_email_draft.message + "' | xclip -selection clipboard";
+    //     std::system(command.c_str());
+    //     return true;
+    // }
     return false;
 }
