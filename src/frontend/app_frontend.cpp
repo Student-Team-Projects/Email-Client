@@ -60,6 +60,20 @@ Application_frontend::Application_frontend(Application& app) :
             mail_input_style("Email")
         )
     })),
+    send_email_layout( ftxui::Container::Vertical({
+        //ftxui::Input( //change to static Input
+            //&current_send_email.sender,
+            //mail_input_style("From:")
+        //),
+        ftxui::Input( //change to static Input
+            &current_send_email.subject,
+            mail_input_style("Subject:")
+        ),
+        ftxui::Input( //change to static Input
+            &current_send_email.body,
+            mail_input_style("Email")
+        )
+    })),
     
     inbox(
         ftxui::Container::Vertical({
@@ -84,7 +98,7 @@ Application_frontend::Application_frontend(Application& app) :
                 for (size_t i = 0; i < std::min(4,(int)send_email_vector.size()); ++i) {
                     buttons.push_back(ftxui::Button(send_email_vector[i].subject, [&, i] {
                     current_send_email = send_email_vector[i];
-                    app.Change_state(Application::State::RECEIVED_EMAIL);
+                    app.Change_state(Application::State::SEND_EMAIL);
                 }));
             }
             return buttons;
@@ -96,7 +110,8 @@ Application_frontend::Application_frontend(Application& app) :
         email_draft_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
         sent_items  | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SENT_ITEMS);}),
         inbox       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::INBOX);}),
-        received_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::RECEIVED_EMAIL);})
+        received_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::RECEIVED_EMAIL);}),
+        send_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SEND_EMAIL);})
     }), [&](ftxui::Event event){return Copy_selected_text(event);})),
     
     control_panel(ftxui::Container::Vertical({

@@ -29,6 +29,7 @@ private:
     Message current_send_email;
     ftxui::Component email_draft_layout;
     ftxui::Component received_email_layout;
+    ftxui::Component send_email_layout;
     ftxui::Component inbox;
     ftxui::Component sent_items;
     ftxui::Component main_component;
