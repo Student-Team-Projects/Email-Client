@@ -34,11 +34,11 @@ Application_frontend::Application_frontend(Application& app) :
     send_email_vector(fetch_send_emails()),
     
     email_draft_layout( ftxui::Container::Vertical({
-        ftxui::Input(
+        ftxui::SelectableInput(
             &current_email_draft.recipient,
             mail_input_style("To:")
         ),
-        ftxui::Input(
+        ftxui::SelectableInput(
             &current_email_draft.subject,
             mail_input_style("Subject:")
         ),
@@ -52,29 +52,29 @@ Application_frontend::Application_frontend(Application& app) :
         )
     })),
     received_email_layout( ftxui::Container::Vertical({
-        //ftxui::Input( //change to static Input
+        //ftxui::SelectableText(
             //&current_received_email.sender,
             //mail_input_style("From:")
         //),
-        ftxui::Input( //change to static Input
+        ftxui::SelectableText(
             &current_received_email.subject,
             mail_input_style("Subject:")
         ),
-        ftxui::Input( //change to static Input
+        ftxui::SelectableText(
             &current_received_email.body,
             mail_input_style("Email")
         )
     })),
     send_email_layout( ftxui::Container::Vertical({
-        //ftxui::Input( //change to static Input
+        //ftxui::SelectableText(
             //&current_send_email.sender,
             //mail_input_style("From:")
         //),
-        ftxui::Input( //change to static Input
+        ftxui::SelectableText(
             &current_send_email.subject,
             mail_input_style("Subject:")
         ),
-        ftxui::Input( //change to static Input
+        ftxui::SelectableText(
             &current_send_email.body,
             mail_input_style("Email")
         )

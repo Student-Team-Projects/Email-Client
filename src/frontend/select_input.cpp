@@ -309,6 +309,13 @@ class SelectableInputBase : public ComponentBase, public InputOption {
           sb = "";
         }
 
+        if(i == selection_right){
+          row_elements.push_back(Text(sb) | highlight_selected);
+          highlight = false;
+          
+          sb = "";
+        }
+
         if(i == cursor_position()){
           row_elements.push_back(Text(sb) | highlight_selected);
           if(c == '\n'){
@@ -332,17 +339,12 @@ class SelectableInputBase : public ComponentBase, public InputOption {
         if(i != cursor_position() && c != '\n'){
           sb += c;
         }
-
-        if(i == selection_right){
-          row_elements.push_back(Text(sb) | highlight_selected);
-          highlight = false;
-          
-          sb = "";
-        }
       }
       
       if(sb.size() > 0){
         row_elements.push_back(Text(sb) | highlight_selected);
+      }
+      if(row_elements.size() > 0){
         elements.push_back(hbox(row_elements));
       }
       
@@ -599,7 +601,9 @@ class SelectableInputBase : public ComponentBase, public InputOption {
     std::string command = "echo '" + content().substr(start, end - start) + "' | xclip -selection clipboard";
     std::system(command.c_str());
 
-    content().erase(start, end - start);
+    if(!static_content){
+      content().erase(start, end - start);
+    }
 
     selection_state = Selection::IDLE;
     return true;
@@ -740,8 +744,7 @@ class SelectableInputBase : public ComponentBase, public InputOption {
 
     // SELECTION CODE
     if (
-      event.mouse().button == Mouse::Left 
-      && event.mouse().motion == Mouse::Motion::Pressed
+      event.mouse().motion == Mouse::Motion::Pressed
       && selection_state != Selection::MOUSE_SELECTION
     ) {
       selection_state = Selection::MOUSE_SELECTION;
