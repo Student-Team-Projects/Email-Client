@@ -143,24 +143,30 @@ std::vector<Message> Mailbox::retrieve_emails(int count) noexcept
         content->extract(contentStream);
 
         vmime::utility::inputStreamStringAdapter inStr(contentString);
-        auto decoder = vmime::utility::encoder::encoderFactory::getInstance()->getDefaultEncoder();
+        auto decoder = vmime::utility::encoder::encoderFactory::getInstance()->create("base64");
         vmime::string outString;
         vmime::utility::outputStreamStringAdapter outStr(outString);
         decoder->decode(inStr, outStr);
-        std::cout << "Raw content: " << contentString << std::endl;
-        std::cout << "Decoded content: " << outString << std::endl;
+        //std::cout << "Raw content: " << contentString << std::endl;
+        //std::cout << "Decoded content: " << outString << std::endl;
 
         vmime::text contentText;
         vmime::text::decodeAndUnfold(outString, &contentText);
 
         // Print the extracted information
-        std::cout << "Subject: " << subjectText.getWholeBuffer() << std::endl;
+        /*std::cout << "Subject: " << subjectText.getWholeBuffer() << std::endl;
         std::cout << "Sender: " << senderText.getWholeBuffer() << std::endl;
         std::cout << "Recipients: " << toText.getWholeBuffer() << std::endl;
         std::cout << "Content: " << contentText.getWholeBuffer() << std::endl;
-        std::cout << std::endl;
-    }
+        std::cout << std::endl;*/
 
+        emails.push_back(Message {
+            {toText.getWholeBuffer()},
+            senderText.getWholeBuffer(),
+            subjectText.getWholeBuffer(),
+            contentString
+        });
+    }
 
     // Disconnect and close the folder and store
     inbox->close(false);  // `false` means do not expunge deleted messages

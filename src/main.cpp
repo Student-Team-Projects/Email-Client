@@ -30,4 +30,17 @@ int main() {
 
 	Mailbox mailbox(senderEmail, appPassword);
 	auto messages = mailbox.retrieve_emails(1);
+
+	for (const auto& message : messages) {
+		std::cout << "Sender: " << message.sender << std::endl;
+		std::cout << "Recipients: "; 
+		
+		for (const auto& recipient : message.recipients) {
+			std::cout << recipient << " ";
+		}
+		std::cout << std::endl;  
+
+		std::cout << "Subject: " << message.subject << std::endl;
+		std::cout << "Body: " << message.body << std::endl;
+	}
 }
