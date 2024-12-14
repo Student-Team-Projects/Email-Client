@@ -8,6 +8,8 @@
 
 #include <vmime/vmime.hpp>
 
+#include "HtmlParser.h"
+
 class certificateVerifier : public vmime::security::cert::defaultCertificateVerifier {
 public:
     void verify(const vmime::shared_ptr<vmime::security::cert::certificateChain>& chain,
@@ -164,7 +166,7 @@ std::vector<Message> Mailbox::retrieve_emails(int count) noexcept
             {toText.getWholeBuffer()},
             senderText.getWholeBuffer(),
             subjectText.getWholeBuffer(),
-            contentString
+            HtmlParser::extractText(contentString)
         });
     }
 

@@ -29,7 +29,7 @@ int main() {
 	std::string body = "This is a test email";
 
 	Mailbox mailbox(senderEmail, appPassword);
-	auto messages = mailbox.retrieve_emails(1);
+	auto messages = mailbox.retrieve_emails(5);
 
 	for (const auto& message : messages) {
 		std::cout << "Sender: " << message.sender << std::endl;
@@ -42,5 +42,6 @@ int main() {
 
 		std::cout << "Subject: " << message.subject << std::endl;
 		std::cout << "Body: " << message.body << std::endl;
+		std::cout << std::string(80, '#') << std::endl;
 	}
 }
