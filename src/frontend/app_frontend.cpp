@@ -137,7 +137,6 @@ Application_frontend::Application_frontend(Application& app) :
                 app.Change_state(Application::State::EMAIL_DRAFT);
             }),
             ftxui::Button("Inbox", [&]{
-                received_email_vector = app.fetch_received_emails(10);
                 app.Change_state(Application::State::INBOX);
             }),
             ftxui::Button("Sent items", [&]{
