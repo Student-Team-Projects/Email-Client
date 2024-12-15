@@ -31,16 +31,21 @@ pkg_check_modules(VMIME REQUIRED vmime)
 include_directories(${VMIME_INCLUDE_DIRS})
 link_directories(${VMIME_LIBRARY_DIRS})
 
+# nlohmann_json
 find_package(nlohmann_json REQUIRED)
 
+# libxml2
+find_package(LibXml2 REQUIRED)
+
+# Define the email_client executable
 add_executable(email_client 
   src/main.cpp
   src/app.cpp
   src/frontend/app_frontend.cpp
 )
 
+# Include headers and subdirectories
 target_include_directories(email_client PUBLIC src)
-
 add_subdirectory(src/backend)
 add_subdirectory(src/frontend)
 
@@ -50,4 +55,9 @@ target_link_libraries(email_client
   PRIVATE ftxui::component 
   ${VMIME_LIBRARIES}
   nlohmann_json::nlohmann_json
+  ${LIBXML2_LIBRARIES}
 )
+        
+
+# Include libxml2 headers
+target_include_directories(email_client PRIVATE ${LIBXML2_INCLUDE_DIR})
