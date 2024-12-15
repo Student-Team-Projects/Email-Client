@@ -8,7 +8,7 @@
 
 #include <vmime/vmime.hpp>
 
-#include "HtmlParser.h"
+#include "html_parser.h"
 
 class certificateVerifier : public vmime::security::cert::defaultCertificateVerifier {
 public:
