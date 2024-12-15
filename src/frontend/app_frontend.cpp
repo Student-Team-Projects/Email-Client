@@ -39,15 +39,15 @@ Application_frontend::Application_frontend(Application& app) :
         ftxui::SelectableInput(
             &current_email_draft.recipient,
             mail_input_style("To:")
-        ),
+        ) | ftxui::flex_shrink,
         ftxui::SelectableInput(
             &current_email_draft.subject,
             mail_input_style("Subject:")
-        ),
+        ) | ftxui::flex_shrink,
         SelectableInput(
             &current_email_draft.message,
             mail_input_style("Email")
-        ),
+        ) | ftxui::flex_shrink,
         SelectableText(
             "\nGet Email client for Arch!",
             mail_input_style("")
@@ -178,7 +178,7 @@ Application_frontend::Application_frontend(Application& app) :
         }),
     })),
     
-    layout(ftxui::Container::Vertical({main_component, control_panel})),
+    layout(ftxui::Container::Vertical({main_component | ftxui::flex_shrink, control_panel | ftxui::flex_grow})),
 
     screen(ftxui::ScreenInteractive::Fullscreen())
 {}
