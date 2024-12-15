@@ -32,7 +32,7 @@ Application_frontend::Application_frontend(Application& app) :
     current_email_draft(),
     current_received_email(),
     current_send_email(),
-    received_email_vector(app.fetch_received_emails(10)),
+    received_email_vector(app.fetch_received_emails()),
     send_email_vector(fetch_send_emails()),
     
     email_draft_layout( ftxui::Container::Vertical({
