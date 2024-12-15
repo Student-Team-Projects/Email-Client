@@ -35,5 +35,6 @@ private:
     ftxui::Component main_component;
     ftxui::Component control_panel;
     ftxui::Component layout;
+    ftxui::Component log_in;
     ftxui::ScreenInteractive screen;
 };

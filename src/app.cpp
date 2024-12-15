@@ -3,6 +3,7 @@
 #include "backend/mail_types.h"
 #include "backend/mailbox.h"
 #include <memory>
+#include <algorithm> 
 
 #include <iostream>
 #include <fstream>
@@ -38,13 +39,30 @@ void Application::Send_email(const Email_draft& email){
     nlohmann::json config;
     configFile >> config;
 
-    std::string senderEmail = config["sender_email"];
-    std::string appPassword = config["app_password"];
+    std::string senderEmail = current_email_address;
+    std::string appPassword = "";
+    
+    auto user = std::find_if(config.begin(), config.end(), [&](const auto& v){
+        return v["senderEmail"] == current_email_address;
+    });
+    if(user == config.end()){
+        std::cerr << "No app password provided for the current email address!";
+        return;
+    }
+    appPassword = (*user)["app_password"];
 
     Mailbox mailbox(senderEmail, appPassword);
     Message message({{email.recipient}, email.subject, email.message});
     mailbox.send(message);
     std::cerr << "email sent"<< std::endl;
+}
+
+void Application::Set_current_email_address(std::string new_address){
+    current_email_address = new_address;
+}
+
+std::string Application::Get_current_email_address(){
+    return current_email_address;
 }
 
 Application::Application() :
