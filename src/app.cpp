@@ -47,6 +47,29 @@ void Application::Send_email(const Email_draft& email){
     std::cerr << "email sent"<< std::endl;
 }
 
+std::vector<Message> Application::fetch_received_emails(int no_emails){
+    std::cerr << "fetching emails..." << std::endl;
+
+    std::ifstream configFile("config.json");
+    if (!configFile){
+        std::cerr << "Failed to open config.json"<< std::endl;
+    }
+
+    std::cerr << "managed to open config.json"<< std::endl;
+
+    nlohmann::json config;
+    configFile >> config;
+
+    std::string senderEmail = config["sender_email"];
+    std::string appPassword = config["app_password"];
+
+    
+    Mailbox mailbox(senderEmail, appPassword);
+    std::vector<Message> emails = mailbox.retrieve_emails(no_emails);
+    std::cerr << "emails retrieved"<< std::endl;
+    return emails;
+}
+
 Application::Application() :
     current_state(State::INBOX)
 {}

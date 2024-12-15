@@ -18,7 +18,6 @@ public:
     void Loop();
 private:
     bool Copy_selected_text(ftxui::Event event);
-    std::vector<Message> fetch_received_emails();
     std::vector<Message> fetch_send_emails();
 
     Application& app;

@@ -32,7 +32,7 @@ Application_frontend::Application_frontend(Application& app) :
     current_email_draft(),
     current_received_email(),
     current_send_email(),
-    received_email_vector(fetch_received_emails()),
+    received_email_vector(app.fetch_received_emails(10)),
     send_email_vector(fetch_send_emails()),
     
     email_draft_layout( ftxui::Container::Vertical({
@@ -137,7 +137,7 @@ Application_frontend::Application_frontend(Application& app) :
                 app.Change_state(Application::State::EMAIL_DRAFT);
             }),
             ftxui::Button("Inbox", [&]{
-                received_email_vector = fetch_received_emails();
+                received_email_vector = app.fetch_received_emails(10);
                 app.Change_state(Application::State::INBOX);
             }),
             ftxui::Button("Sent items", [&]{
@@ -187,10 +187,7 @@ void Application_frontend::Loop(){
     screen.Loop(layout);
 }
 
-std::vector<Message> Application_frontend::fetch_received_emails(){
-    std::vector<Message> emails(5,{{},"received mail","received body"});
-    return {emails};
-}
+
 
 std::vector<Message> Application_frontend::fetch_send_emails(){
     std::vector<Message> emails(5,{{},"send subject","send body"});

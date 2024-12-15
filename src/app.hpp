@@ -1,8 +1,12 @@
 #pragma once
 #include <memory>
+#include <vector>
+#include "backend/mailbox.h"
+
 
 class Application_frontend;
 class Email_draft;
+
 
 class Application {
 public:
@@ -17,6 +21,7 @@ public:
     bool Is_in_state(State state);
     void Change_state(State new_state);
     void Send_email(const Email_draft& email);
+    std::vector<Message> fetch_received_emails(int no_emails);
     Application();
 private:
     State current_state;
