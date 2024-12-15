@@ -5,7 +5,7 @@ project(email_client
   VERSION 1.0.0
 )
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -41,7 +41,6 @@ find_package(LibXml2 REQUIRED)
 add_executable(email_client 
   src/main.cpp
   src/app.cpp
-  src/frontend/app_frontend.cpp
 )
 
 # Include headers and subdirectories
