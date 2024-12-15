@@ -10,6 +10,19 @@
 #include <nlohmann/json.hpp>
 
 void Application::Run(std::unique_ptr<Application_frontend> front){
+    std::ifstream configFile("config.json");
+    if (!configFile){
+        std::cerr << "Failed to open config.json"<< std::endl;
+    }
+
+    std::cerr << "managed to open config.json"<< std::endl;
+    nlohmann::json config;
+    configFile >> config;
+    std::string senderEmail = config["sender_email"];
+    std::string appPassword = config["app_password"];
+    Mailbox mailbox(senderEmail, appPassword);
+    mailbox.synchronize();
+    std::vector<Message> emails = mailbox.get_emails();
     frontend = std::move(front);
     frontend->Loop();
 }
