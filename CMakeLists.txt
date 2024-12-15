@@ -55,6 +55,7 @@ target_link_libraries(email_client
   ${VMIME_LIBRARIES}
   nlohmann_json::nlohmann_json
   ${LIBXML2_LIBRARIES}
+  PRIVATE sqlite3
 )
         
 

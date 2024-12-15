@@ -9,8 +9,8 @@ class Mailbox {
 public:
   Mailbox(const std::string& email, const std::string& password);
   void send(const Message& message) noexcept;
-  std::vector<Message> retrieve_emails(int count) noexcept; // retrieve most recent emails
-
+  void synchronize() noexcept;
+  std::vector<Message> get_emails() noexcept;
 private:
   std::string email;
   std::string password;
