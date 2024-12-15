@@ -9,7 +9,9 @@ public:
     enum class State {
         EMAIL_DRAFT,
         INBOX,
-        SENT_ITEMS
+        SENT_ITEMS,
+        RECEIVED_EMAIL,
+        SEND_EMAIL,
     };
     void Run(std::unique_ptr<Application_frontend> front);
     bool Is_in_state(State state);
