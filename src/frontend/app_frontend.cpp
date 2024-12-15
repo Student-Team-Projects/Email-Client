@@ -27,6 +27,8 @@ ftxui::InputOption mail_input_style(const std::string& placeholder) {
 Application_frontend::Application_frontend(Application& app) :
     app(app),
     
+    inbox_page(0),
+    send_page(0),
     current_email_draft(),
     current_received_email(),
     current_send_email(),
@@ -142,7 +144,38 @@ Application_frontend::Application_frontend(Application& app) :
                 send_email_vector = fetch_send_emails();
                 app.Change_state(Application::State::SENT_ITEMS);
             })
-        })
+        }),
+        ftxui::Container::Horizontal({
+            ftxui::Button("Next", [&]{
+                inbox_page++;
+                inbox->DetachAllChildren();
+                std::vector<ftxui::Component> buttons;
+                for (size_t i = 4*inbox_page; i < std::min(4*(inbox_page+1),(int)received_email_vector.size()); ++i) {
+                    buttons.push_back(ftxui::Button(received_email_vector[i].subject, [&, i] {
+                    current_received_email = received_email_vector[i];
+                    app.Change_state(Application::State::RECEIVED_EMAIL);
+                    }));
+                }
+                for(auto b : buttons){
+                    inbox->Add(b);
+                }
+                
+            }) | ftxui::Maybe([&]{return app.Is_in_state(Application::State::INBOX);}),
+            ftxui::Button("Previous", [&]{
+                inbox_page--;
+                inbox->DetachAllChildren();
+                std::vector<ftxui::Component> buttons;
+                for (size_t i = 4*inbox_page; i < std::min(4*(inbox_page+1),(int)received_email_vector.size()); ++i) {
+                    buttons.push_back(ftxui::Button(received_email_vector[i].subject, [&, i] {
+                    current_received_email = received_email_vector[i];
+                    app.Change_state(Application::State::RECEIVED_EMAIL);
+                    }));
+                }
+                for(auto b : buttons){
+                    inbox->Add(b);
+                }
+            }) | ftxui::Maybe([&]{return inbox_page>0 && app.Is_in_state(Application::State::INBOX);}),
+        }),
     })),
     
     layout(ftxui::Container::Vertical({main_component, control_panel})),
