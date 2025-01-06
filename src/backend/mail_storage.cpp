@@ -131,7 +131,7 @@ bool save_emails(std::vector<Message>& emails, sqlite3* db, const std::string &f
   return true;
 }
 
-std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, const std::string &password) noexcept
+std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, const std::string &password, const std::string& folder_name) noexcept
 {
   std::vector<Message> emails;
 
@@ -152,13 +152,13 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
     // Connect to the IMAP server
     store->connect();
 
-    // Open the INBOX folder
-    vmime::shared_ptr<vmime::net::folder> inbox = store->getFolder(vmime::net::folder::path("INBOX"));
-    inbox->open(vmime::net::folder::MODE_READ_ONLY);
+    // Open the folder
+    vmime::shared_ptr<vmime::net::folder> folder = store->getFolder(vmime::net::folder::path(folder_name));
+    folder->open(vmime::net::folder::MODE_READ_ONLY);
 
     // Fetch the recent emails (-1 means the last)
-    auto messages = inbox->getMessages(vmime::net::messageSet::byNumber(1, -1));
-    inbox->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
+    auto messages = folder->getMessages(vmime::net::messageSet::byNumber(1, -1));
+    folder->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
     vmime::utility::outputStreamAdapter os(std::cout);
 
     for (const auto& message : messages) {
@@ -204,7 +204,7 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
     }
 
     // Disconnect and close the folder and store
-    inbox->close(false);  // `false` means do not expunge deleted messages
+    folder->close(false);  // `false` means do not expunge deleted messages
     store->disconnect();
   }
   catch (vmime::exception& e) {
@@ -222,7 +222,6 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
 bool MailStorage::synchronize(const std::string &email, const std::string &password) noexcept
 {
   sqlite3* db = open_db(email);
-
 
   const char* sql = "DELETE FROM Mails;";
   char* err_msg = nullptr;
@@ -243,8 +242,14 @@ bool MailStorage::synchronize(const std::string &email, const std::string &passw
       return false;
   }
 
-  auto [emails, status] = fetch_emails(email, password);
-  if(!status || !save_emails(emails, db, "INBOX")){
+  auto [received_emails, received_status] = fetch_emails(email, password, "INBOX");
+  if(!received_status || !save_emails(received_emails, db, "INBOX")){
+    sqlite3_close(db);
+    return false;
+  }
+
+  auto [sent_emails, sent_status] = fetch_emails(email, password, "SENT");
+  if(!sent_status || !save_emails(sent_emails, db, "SENT")){
     sqlite3_close(db);
     return false;
   }
@@ -304,5 +309,5 @@ std::vector<Message> MailStorage::get_received_emails(const std::string &email) 
 
 std::vector<Message> MailStorage::get_sent_emails(const std::string &email) noexcept
 {
-  return get_emails(email, "SENT");
+  return get_emails(email, "SENT MAIL");
 }
