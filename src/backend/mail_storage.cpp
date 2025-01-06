@@ -153,11 +153,21 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
     store->connect();
 
     // Open the folder
-    vmime::shared_ptr<vmime::net::folder> folder = store->getFolder(vmime::net::folder::path(folder_name));
+    vmime::shared_ptr<vmime::net::folder> folder;
+    if (folder_name == "SENT") {
+      folder = store->getFolder(vmime::net::folder::path("[Gmail]"))->getFolder(vmime::utility::path::component("Wysłane", "utf-8"));
+    }
+    else {
+      folder = store->getFolder(vmime::net::folder::path(folder_name));
+    }
     folder->open(vmime::net::folder::MODE_READ_ONLY);
 
-    // Fetch the recent emails (-1 means the last)
-    auto messages = folder->getMessages(vmime::net::messageSet::byNumber(1, -1));
+
+    // Limit the number of messages to 100, change to (1, -1) for all messages
+    int messageCount = folder->getMessageCount();
+    int start = std::max(1, messageCount - 100 + 1);
+    auto messages = folder->getMessages(vmime::net::messageSet::byNumber(start, messageCount));
+
     folder->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
     vmime::utility::outputStreamAdapter os(std::cout);
 
@@ -309,5 +319,5 @@ std::vector<Message> MailStorage::get_received_emails(const std::string &email) 
 
 std::vector<Message> MailStorage::get_sent_emails(const std::string &email) noexcept
 {
-  return get_emails(email, "SENT MAIL");
+  return get_emails(email, "SENT");
 }
