@@ -16,11 +16,12 @@ std::string get_db_path(const std::string &email) noexcept
 void init_db(sqlite3* db) noexcept
 {
   char* err_msg = nullptr;
-  const char* sql = "CREATE TABLE MailsReceived("
+  const char* sql = "CREATE TABLE Mails ("
                     "ID INT PRIMARY KEY,"
                     "Sender TEXT NOT NULL,"
                     "Subject TEXT NOT NULL,"
-                    "Body TEXT NOT NULL);";
+                    "Body TEXT NOT NULL,"
+                    "Folder TEXT NOT NULL);";
 
   int rc = sqlite3_exec(db, sql, nullptr, nullptr, &err_msg);
   if (rc != SQLITE_OK) {
@@ -31,7 +32,7 @@ void init_db(sqlite3* db) noexcept
   sql = "CREATE TABLE Recipients("
         "MailID INT NOT NULL,"
         "Recipient TEXT NOT NULL,"
-        "FOREIGN KEY(MailID) REFERENCES MailsReceived(ID));";
+        "FOREIGN KEY(MailID) REFERENCES Mails(ID));";
   rc = sqlite3_exec(db, sql, nullptr, nullptr, &err_msg);
   if (rc != SQLITE_OK) {
       std::cerr << "SQL error: " << err_msg << std::endl;
@@ -65,7 +66,7 @@ std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
   sqlite3* db = open_db(email);
 
   sqlite3_stmt* stmt;
-  const char* sql = "SELECT COUNT(*) FROM MailsReceived;";
+  const char* sql = "SELECT COUNT(*) FROM Mails;";
   int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
@@ -86,8 +87,8 @@ std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
   return count;
 }
 
-bool save_emails(std::vector<Message>& emails, sqlite3* db) {
-  const char* mail_sql = "INSERT INTO MailsReceived (Sender, Subject, Body) VALUES (?, ?, ?);";
+bool save_emails(std::vector<Message>& emails, sqlite3* db, const std::string &folder) {
+  const char* mail_sql = "INSERT INTO Mails (Sender, Subject, Body, Folder) VALUES (?, ?, ?, ?);";
   const char* recipient_sql = "INSERT INTO Recipients (MailID, Recipient) VALUES (?, ?);";
   sqlite3_stmt* stmt;
   for (Message& message : emails) {
@@ -99,6 +100,7 @@ bool save_emails(std::vector<Message>& emails, sqlite3* db) {
     sqlite3_bind_text(stmt, 1, message.sender.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, message.subject.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 3, message.body.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 4, folder.c_str(), -1, SQLITE_STATIC);
 
     if (sqlite3_step(stmt) != SQLITE_DONE) {
       std::cerr << "Failed to step: " << sqlite3_errmsg(db) << std::endl;
@@ -129,7 +131,7 @@ bool save_emails(std::vector<Message>& emails, sqlite3* db) {
   return true;
 }
 
-std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, const std::string &password) noexcept
+std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, const std::string &password, const std::string& folder_name) noexcept
 {
   std::vector<Message> emails;
 
@@ -150,13 +152,23 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
     // Connect to the IMAP server
     store->connect();
 
-    // Open the INBOX folder
-    vmime::shared_ptr<vmime::net::folder> inbox = store->getFolder(vmime::net::folder::path("INBOX"));
-    inbox->open(vmime::net::folder::MODE_READ_ONLY);
+    // Open the folder
+    vmime::shared_ptr<vmime::net::folder> folder;
+    if (folder_name == "SENT") {
+      folder = store->getFolder(vmime::net::folder::path("[Gmail]"))->getFolder(vmime::utility::path::component("Wysłane", "utf-8"));
+    }
+    else {
+      folder = store->getFolder(vmime::net::folder::path(folder_name));
+    }
+    folder->open(vmime::net::folder::MODE_READ_ONLY);
 
-    // Fetch the recent emails (-1 means the last)
-    auto messages = inbox->getMessages(vmime::net::messageSet::byNumber(1, -1));
-    inbox->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
+
+    // Limit the number of messages to 100, change to (1, -1) for all messages
+    int messageCount = folder->getMessageCount();
+    int start = std::max(1, messageCount - 50 + 1);
+    auto messages = folder->getMessages(vmime::net::messageSet::byNumber(start, messageCount));
+
+    folder->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
     vmime::utility::outputStreamAdapter os(std::cout);
 
     for (const auto& message : messages) {
@@ -202,7 +214,7 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
     }
 
     // Disconnect and close the folder and store
-    inbox->close(false);  // `false` means do not expunge deleted messages
+    folder->close(false);  // `false` means do not expunge deleted messages
     store->disconnect();
   }
   catch (vmime::exception& e) {
@@ -221,12 +233,13 @@ bool MailStorage::synchronize(const std::string &email, const std::string &passw
 {
   sqlite3* db = open_db(email);
 
-  const char* sql = "DELETE FROM MailsReceived;";
+  const char* sql = "DELETE FROM Mails;";
   char* err_msg = nullptr;
   int rc = sqlite3_exec(db, sql, nullptr, nullptr, &err_msg);
   if (rc != SQLITE_OK) {
       std::cerr << "SQL error: " << err_msg << std::endl;
       sqlite3_free(err_msg);
+      sqlite3_close(db);
       return false;
   }
 
@@ -235,29 +248,39 @@ bool MailStorage::synchronize(const std::string &email, const std::string &passw
   if (rc != SQLITE_OK) {
       std::cerr << "SQL error: " << err_msg << std::endl;
       sqlite3_free(err_msg);
+      sqlite3_close(db);
       return false;
   }
 
-  auto [emails, status] = fetch_emails(email, password);
-  if(!status || !save_emails(emails, db))
+  auto [received_emails, received_status] = fetch_emails(email, password, "INBOX");
+  if(!received_status || !save_emails(received_emails, db, "INBOX")){
+    sqlite3_close(db);
     return false;
+  }
 
+  auto [sent_emails, sent_status] = fetch_emails(email, password, "SENT");
+  if(!sent_status || !save_emails(sent_emails, db, "SENT")){
+    sqlite3_close(db);
+    return false;
+  }
+  
   sqlite3_close(db);
   return true;
 }
 
-std::vector<Message> MailStorage::get_emails(const std::string &email) noexcept
-{
+std::vector<Message> get_emails(const std::string &email, const std::string &folder) noexcept {
   std::vector<Message> emails;
 
   sqlite3* db = open_db(email);
 
   sqlite3_stmt* stmt;
-  const char* sql = "SELECT ID, Sender, Subject, Body FROM MailsReceived;";
+  const char* sql = "SELECT ID, Sender, Subject, Body FROM Mails WHERE Folder = ?;";
   if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
     std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
     return emails;
   }
+
+  sqlite3_bind_text(stmt, 1, folder.c_str(), -1, SQLITE_STATIC);
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
     long long id = sqlite3_column_int64(stmt, 0);
@@ -287,4 +310,14 @@ std::vector<Message> MailStorage::get_emails(const std::string &email) noexcept
   sqlite3_close(db);
 
   return emails;
+}
+
+std::vector<Message> MailStorage::get_received_emails(const std::string &email) noexcept
+{
+  return get_emails(email, "INBOX");
+}
+
+std::vector<Message> MailStorage::get_sent_emails(const std::string &email) noexcept
+{
+  return get_emails(email, "SENT");
 }
