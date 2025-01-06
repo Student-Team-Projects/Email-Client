@@ -165,7 +165,7 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
 
     // Limit the number of messages to 100, change to (1, -1) for all messages
     int messageCount = folder->getMessageCount();
-    int start = std::max(1, messageCount - 100 + 1);
+    int start = std::max(1, messageCount - 50 + 1);
     auto messages = folder->getMessages(vmime::net::messageSet::byNumber(start, messageCount));
 
     folder->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
