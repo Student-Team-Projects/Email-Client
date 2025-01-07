@@ -10,6 +10,20 @@
 
 #include <nlohmann/json.hpp>
 
+namespace{
+    void setup_config_file(){
+        std::ifstream config_file;
+        config_file.open ("config.json", std::ifstream::in);
+        
+        if(config_file.peek() == std::ifstream::traits_type::eof()){
+            config_file.close();
+            std::ofstream config_file_new("config.json");
+            config_file_new << "[]" << std::endl; 
+            config_file_new.close();
+        }
+    }
+}
+
 void Application::Run(std::unique_ptr<Application_frontend> front){
     frontend = std::move(front);
     frontend->Loop();
@@ -43,13 +57,13 @@ void Application::Send_email(const Email_draft& email){
     std::string appPassword = "";
     
     auto user = std::find_if(config.begin(), config.end(), [&](const auto& v){
-        return v["senderEmail"] == current_email_address;
+        return v["sender_email"] == current_email_address;
     });
     if(user == config.end()){
         std::cerr << "No app password provided for the current email address!";
         return;
     }
-    appPassword = (*user)["app_password"];
+    appPassword = (std::string)(*user)["app_password"];
 
     Mailbox mailbox(senderEmail, appPassword);
     Message message({{email.recipient}, email.subject, email.message});
@@ -65,6 +79,8 @@ std::string Application::Get_current_email_address(){
     return current_email_address;
 }
 
-Application::Application() :
-    current_state(State::INBOX)
-{}
+Application::Application() 
+:   current_state(State::LOG_IN)
+{
+    setup_config_file();
+}

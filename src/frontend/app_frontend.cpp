@@ -1,6 +1,8 @@
 #include "frontend/app_frontend.hpp"
 #include "frontend/select_input.cpp"
 #include "app.hpp"
+#include "frontend/log_in.hpp"
+#include "iostream"
 
 ftxui::InputOption mail_input_style(const std::string& placeholder) {
     ftxui::InputOption option;
@@ -27,6 +29,7 @@ ftxui::InputOption mail_input_style(const std::string& placeholder) {
 Application_frontend::Application_frontend(Application& app) :
     app(app),
     
+    log_in(log_in::get_log_in_data(app)),
     current_email_draft(),
     current_received_email(),
     current_send_email(),
@@ -116,7 +119,8 @@ Application_frontend::Application_frontend(Application& app) :
         sent_items  | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SENT_ITEMS);}),
         inbox       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::INBOX);}),
         received_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::RECEIVED_EMAIL);}),
-        send_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SEND_EMAIL);})
+        send_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SEND_EMAIL);}),
+        log_in.visuals | ftxui::Maybe([&]{return app.Is_in_state(Application::State::LOG_IN);}),
     }), [&](ftxui::Event event){return Copy_selected_text(event);})),
     
     control_panel(ftxui::Container::Vertical({
@@ -143,7 +147,7 @@ Application_frontend::Application_frontend(Application& app) :
                 app.Change_state(Application::State::SENT_ITEMS);
             })
         })
-    })),
+    })| ftxui::Maybe([&]{return !app.Is_in_state(Application::State::LOG_IN);})) ,
     
     layout(ftxui::Container::Vertical({main_component, control_panel})),
 

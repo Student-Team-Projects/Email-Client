@@ -41,7 +41,6 @@ find_package(LibXml2 REQUIRED)
 add_executable(email_client 
   src/main.cpp
   src/app.cpp
-  src/frontend/app_frontend.cpp
 )
 
 # Include headers and subdirectories
