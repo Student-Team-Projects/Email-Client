@@ -155,12 +155,19 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
     // Open the folder
     vmime::shared_ptr<vmime::net::folder> folder;
     if (folder_name == "SENT") {
-      folder = store->getFolder(vmime::net::folder::path("[Gmail]"))->getFolder(vmime::utility::path::component("Wysłane", "utf-8"));
+      try{
+        folder = store->getFolder(vmime::net::folder::path("[Gmail]"))->getFolder(vmime::utility::path::component("Wysłane", "utf-8"));
+        folder->open(vmime::net::folder::MODE_READ_ONLY);
+      }
+      catch (vmime::exception& e) {
+        folder = store->getFolder(vmime::net::folder::path("[Gmail]"))->getFolder(vmime::utility::path::component("Sent Mail", "utf-8"));
+        folder->open(vmime::net::folder::MODE_READ_ONLY);
+      }
     }
     else {
       folder = store->getFolder(vmime::net::folder::path(folder_name));
+      folder->open(vmime::net::folder::MODE_READ_ONLY);
     }
-    folder->open(vmime::net::folder::MODE_READ_ONLY);
 
 
     // Limit the number of messages to 100, change to (1, -1) for all messages
@@ -172,6 +179,7 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
     vmime::utility::outputStreamAdapter os(std::cout);
 
     for (const auto& message : messages) {
+      try{
         // Extract header and body content
         auto header = message->getHeader();
         auto content = message->getParsedMessage()->getBody()->getContents();
@@ -211,6 +219,13 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
             subjectText.getWholeBuffer(),
             HtmlParser::extractText(contentString)
         });
+      }
+      catch (vmime::exception& e) {
+        std::cerr << "Error processing email: " << e.what() << std::endl;
+      }
+      catch (std::exception& e) {
+        std::cerr << "General error: " << e.what() << std::endl;
+      }
     }
 
     // Disconnect and close the folder and store
