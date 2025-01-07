@@ -2,6 +2,7 @@
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/component/component.hpp"
 #include "backend/mailbox.h"
+#include "frontend/log_in.hpp"
 
 class Application;
 
@@ -21,6 +22,7 @@ private:
     std::vector<Message> fetch_send_emails();
 
     Application& app;
+    log_in::Log_in_data log_in;
     std::vector<Message> received_email_vector;
     std::vector<Message> send_email_vector;
     int inbox_page;
@@ -36,6 +38,5 @@ private:
     ftxui::Component main_component;
     ftxui::Component control_panel;
     ftxui::Component layout;
-    ftxui::Component log_in;
     ftxui::ScreenInteractive screen;
 };
