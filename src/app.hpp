@@ -22,6 +22,7 @@ public:
     void Change_state(State new_state);
     void Send_email(const Email_draft& email);
     std::vector<Message> fetch_received_emails();
+    std::vector<Message> fetch_sent_emails();
     Application();
 private:
     State current_state;

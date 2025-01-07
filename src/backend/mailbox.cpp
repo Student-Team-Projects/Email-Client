@@ -64,3 +64,8 @@ std::vector<Message> Mailbox::get_emails() noexcept
 {
   return MailStorage::get_received_emails(email);
 }
+
+std::vector<Message> Mailbox::get_sent_emails() noexcept
+{
+  return MailStorage::get_sent_emails(email);
+}

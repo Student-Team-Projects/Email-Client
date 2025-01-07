@@ -33,7 +33,7 @@ Application_frontend::Application_frontend(Application& app) :
     current_received_email(),
     current_send_email(),
     received_email_vector(app.fetch_received_emails()),
-    send_email_vector(fetch_send_emails()),
+    send_email_vector(app.fetch_sent_emails()),
     
     email_draft_layout( ftxui::Container::Vertical({
         ftxui::SelectableInput(

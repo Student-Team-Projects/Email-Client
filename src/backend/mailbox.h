@@ -11,6 +11,7 @@ public:
   void send(const Message& message) noexcept;
   void synchronize() noexcept;
   std::vector<Message> get_emails() noexcept;
+  std::vector<Message> get_sent_emails() noexcept;
 private:
   std::string email;
   std::string password;
