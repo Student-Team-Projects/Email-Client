@@ -25,8 +25,7 @@ public:
     std::string Get_current_email_address();
     void Send_email(const Email_draft& email);
     void synchronize();
-    std::vector<Message> fetch_received_emails();
-    std::vector<Message> fetch_sent_emails();
+    std::vector<Folder> fetch_emails();
     Application();
 private:
     Mailbox get_current_mailbox();

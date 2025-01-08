@@ -80,16 +80,9 @@ void Application::synchronize()
     mailbox.synchronize();
 }
 
-std::vector<Message> Application::fetch_received_emails(){
+std::vector<Folder> Application::fetch_emails(){
     Mailbox mailbox = get_current_mailbox();
-    std::vector<Message> emails = mailbox.get_emails();
-    std::cerr << "emails retrieved"<< std::endl;
-    return emails;
-}
-
-std::vector<Message> Application::fetch_sent_emails(){
-    Mailbox mailbox = get_current_mailbox();
-    std::vector<Message> emails = mailbox.get_sent_emails();
+    std::vector<Folder> emails = mailbox.get_emails();
     std::cerr << "emails retrieved"<< std::endl;
     return emails;
 }

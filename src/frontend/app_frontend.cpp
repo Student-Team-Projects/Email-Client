@@ -235,8 +235,15 @@ bool Application_frontend::Copy_selected_text(ftxui::Event event)
 
 void Application_frontend::refresh_emails()
 {
-    received_email_vector = app.fetch_received_emails();
-    sent_email_vector = app.fetch_sent_emails();
+    std::vector<Folder> emails = app.fetch_emails();
+    for (const auto& folder : emails) {
+        if (folder.name == "INBOX") {
+            received_email_vector = folder.messages;
+        }
+        else if (folder.name == "SENT_ITEMS") {
+            sent_email_vector = folder.messages;
+        }
+    }
 
     regenerate_folder("inbox");
     regenerate_folder("sent_items");

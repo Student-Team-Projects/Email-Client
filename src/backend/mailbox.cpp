@@ -60,12 +60,7 @@ void Mailbox::synchronize() noexcept
   MailStorage::synchronize(email, password);
 }
 
-std::vector<Message> Mailbox::get_emails() noexcept
+std::vector<Folder> Mailbox::get_emails() noexcept
 {
-  return MailStorage::get_received_emails(email);
-}
-
-std::vector<Message> Mailbox::get_sent_emails() noexcept
-{
-  return MailStorage::get_sent_emails(email);
+  return MailStorage::get_emails(email);
 }
