@@ -2,6 +2,7 @@
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/component/component.hpp"
 #include "backend/mailbox.h"
+#include "frontend/log_in.hpp"
 
 class Application;
 
@@ -16,11 +17,14 @@ class Application_frontend{
 public:
     Application_frontend(Application& app);
     void Loop();
+    void Synchronize();
+    void refresh_emails();
 private:
     bool Copy_selected_text(ftxui::Event event);
-    std::vector<Message> fetch_send_emails();
+    void regenerate_folder(const std::string& folder_name);
 
     Application& app;
+    log_in::Log_in_data log_in;
     std::vector<Message> received_email_vector;
     std::vector<Message> sent_email_vector;
     int inbox_page;

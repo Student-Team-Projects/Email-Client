@@ -246,6 +246,10 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
 
 bool MailStorage::synchronize(const std::string &email, const std::string &password) noexcept
 {
+  // Fetch emails before deleting (this takes time)
+  auto [received_emails, received_status] = fetch_emails(email, password, "INBOX");
+  auto [sent_emails, sent_status] = fetch_emails(email, password, "SENT");
+
   sqlite3* db = open_db(email);
 
   const char* sql = "DELETE FROM Mails;";
@@ -267,13 +271,11 @@ bool MailStorage::synchronize(const std::string &email, const std::string &passw
       return false;
   }
 
-  auto [received_emails, received_status] = fetch_emails(email, password, "INBOX");
   if(!received_status || !save_emails(received_emails, db, "INBOX")){
     sqlite3_close(db);
     return false;
   }
 
-  auto [sent_emails, sent_status] = fetch_emails(email, password, "SENT");
   if(!sent_status || !save_emails(sent_emails, db, "SENT")){
     sqlite3_close(db);
     return false;
