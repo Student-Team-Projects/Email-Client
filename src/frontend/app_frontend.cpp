@@ -24,16 +24,29 @@ ftxui::InputOption mail_input_style(const std::string& placeholder) {
     return option;
 }
 
+std::vector<ftxui::Component> show_folder(Application& app, std::vector<Message>& messages,
+    Message& current_message, Application::State state, std::size_t start_index, std::size_t count) {
+    std::vector<ftxui::Component> buttons;
+    for (size_t i = start_index; i < std::min(start_index + 4,messages.size()); ++i) {
+        // Be carefull what you pass as a reference -- state would be a dangling reference
+        buttons.push_back(ftxui::Button(messages[i].subject, [&messages, &app, &current_message, state, i] {
+            current_message = messages[i];
+            app.Change_state(state);
+    }));
+    }
+    return buttons;
+}
+
 Application_frontend::Application_frontend(Application& app) :
     app(app),
     
     inbox_page(0),
-    send_page(0),
+    sent_page(0),
     current_email_draft(),
     current_received_email(),
-    current_send_email(),
+    current_sent_email(),
     received_email_vector(app.fetch_received_emails()),
-    send_email_vector(app.fetch_sent_emails()),
+    sent_email_vector(app.fetch_sent_emails()),
     
     email_draft_layout( ftxui::Container::Vertical({
         ftxui::SelectableInput(
@@ -67,58 +80,38 @@ Application_frontend::Application_frontend(Application& app) :
             mail_input_style("Email")
         )
     })),
-    send_email_layout( ftxui::Container::Vertical({
+    sent_email_layout( ftxui::Container::Vertical({
         //ftxui::SelectableText(
             //&current_send_email.sender,
             //mail_input_style("From:")
         //),
         ftxui::SelectableText(
-            &current_send_email.subject,
+            &current_sent_email.subject,
             mail_input_style("Subject:")
         ),
         ftxui::SelectableText(
-            &current_send_email.body,
+            &current_sent_email.body,
             mail_input_style("Email")
         )
     })),
     
     inbox(
         ftxui::Container::Vertical({
-            [&] {
-                std::vector<ftxui::Component> buttons;
-                for (size_t i = 0; i < std::min(4,(int)received_email_vector.size()); ++i) {
-                    buttons.push_back(ftxui::Button(received_email_vector[i].subject, [&, i] {
-                    current_received_email = received_email_vector[i];
-                    app.Change_state(Application::State::RECEIVED_EMAIL);
-                }));
-            }
-            return buttons;
-            }()
-            
-        })
+            show_folder(app, received_email_vector, current_received_email, Application::State::RECEIVED_EMAIL, 0, 4)})
     ),
     
     sent_items( 
         ftxui::Container::Vertical({
-            [&] {
-                std::vector<ftxui::Component> buttons;
-                for (size_t i = 0; i < std::min(4,(int)send_email_vector.size()); ++i) {
-                    buttons.push_back(ftxui::Button(send_email_vector[i].subject, [&, i] {
-                    current_send_email = send_email_vector[i];
-                    app.Change_state(Application::State::SEND_EMAIL);
-                }));
-            }
-            return buttons;
-            }()
-        })
+            show_folder(app, sent_email_vector, current_sent_email, Application::State::SENT_EMAIL, 0, 4)
+            })
     ),
     
     main_component(ftxui::CatchEvent(ftxui::Container::Vertical({
         email_draft_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
         sent_items  | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SENT_ITEMS);}),
         inbox       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::INBOX);}),
-        received_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::RECEIVED_EMAIL);}),
-        send_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SEND_EMAIL);})
+        received_email_layout | ftxui::Maybe([&]{ return app.Is_in_state(Application::State::RECEIVED_EMAIL);}),
+        sent_email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SENT_EMAIL);})
     }), [&](ftxui::Event event){return Copy_selected_text(event);})),
     
     control_panel(ftxui::Container::Vertical({
@@ -140,21 +133,16 @@ Application_frontend::Application_frontend(Application& app) :
                 app.Change_state(Application::State::INBOX);
             }),
             ftxui::Button("Sent items", [&]{
-                send_email_vector = fetch_send_emails();
                 app.Change_state(Application::State::SENT_ITEMS);
             })
         }),
+        // All of this should be unified -- violates DRY
         ftxui::Container::Horizontal({
             ftxui::Button("Next", [&]{
                 inbox_page++;
                 inbox->DetachAllChildren();
-                std::vector<ftxui::Component> buttons;
-                for (size_t i = 4*inbox_page; i < std::min(4*(inbox_page+1),(int)received_email_vector.size()); ++i) {
-                    buttons.push_back(ftxui::Button(received_email_vector[i].subject, [&, i] {
-                    current_received_email = received_email_vector[i];
-                    app.Change_state(Application::State::RECEIVED_EMAIL);
-                    }));
-                }
+                std::vector<ftxui::Component> buttons 
+                    = show_folder(app, received_email_vector, current_received_email, Application::State::RECEIVED_EMAIL, 4*inbox_page, 4);
                 for(auto b : buttons){
                     inbox->Add(b);
                 }
@@ -163,18 +151,34 @@ Application_frontend::Application_frontend(Application& app) :
             ftxui::Button("Previous", [&]{
                 inbox_page--;
                 inbox->DetachAllChildren();
-                std::vector<ftxui::Component> buttons;
-                for (size_t i = 4*inbox_page; i < std::min(4*(inbox_page+1),(int)received_email_vector.size()); ++i) {
-                    buttons.push_back(ftxui::Button(received_email_vector[i].subject, [&, i] {
-                    current_received_email = received_email_vector[i];
-                    app.Change_state(Application::State::RECEIVED_EMAIL);
-                    }));
-                }
+                std::vector<ftxui::Component> buttons
+                    = show_folder(app, received_email_vector, current_received_email, Application::State::RECEIVED_EMAIL, 4*inbox_page, 4);
                 for(auto b : buttons){
                     inbox->Add(b);
                 }
             }) | ftxui::Maybe([&]{return inbox_page>0 && app.Is_in_state(Application::State::INBOX);}),
         }),
+        ftxui::Container::Horizontal({
+            ftxui::Button("Next", [&]{
+                sent_page++;
+                sent_items->DetachAllChildren();
+                std::vector<ftxui::Component> buttons 
+                    = show_folder(app, sent_email_vector, current_sent_email, Application::State::SENT_EMAIL, 4*sent_page, 4);
+                for(auto b : buttons){
+                    sent_items->Add(b);
+                }
+                
+            }) | ftxui::Maybe([&]{return app.Is_in_state(Application::State::SENT_ITEMS);}),
+            ftxui::Button("Previous", [&]{
+                sent_page--;
+                sent_items->DetachAllChildren();
+                std::vector<ftxui::Component> buttons 
+                    = show_folder(app, sent_email_vector, current_sent_email, Application::State::SENT_EMAIL, 4*sent_page, 4);
+                for(auto b : buttons){
+                    sent_items->Add(b);
+                }
+            }) | ftxui::Maybe([&]{return sent_page>0 && app.Is_in_state(Application::State::SENT_ITEMS);}),
+        })
     })),
     
     layout(ftxui::Container::Vertical({main_component | ftxui::flex_shrink, control_panel | ftxui::flex_grow})),

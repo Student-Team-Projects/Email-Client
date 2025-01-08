@@ -22,15 +22,15 @@ private:
 
     Application& app;
     std::vector<Message> received_email_vector;
-    std::vector<Message> send_email_vector;
+    std::vector<Message> sent_email_vector;
     int inbox_page;
-    int send_page;
+    int sent_page;
     Email_draft current_email_draft;
     Message current_received_email;
-    Message current_send_email;
+    Message current_sent_email;
     ftxui::Component email_draft_layout;
     ftxui::Component received_email_layout;
-    ftxui::Component send_email_layout;
+    ftxui::Component sent_email_layout;
     ftxui::Component inbox;
     ftxui::Component sent_items;
     ftxui::Component main_component;

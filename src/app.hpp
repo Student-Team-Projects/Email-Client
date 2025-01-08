@@ -15,7 +15,7 @@ public:
         INBOX,
         SENT_ITEMS,
         RECEIVED_EMAIL,
-        SEND_EMAIL,
+        SENT_EMAIL,
     };
     void Run(std::unique_ptr<Application_frontend> front);
     bool Is_in_state(State state);
