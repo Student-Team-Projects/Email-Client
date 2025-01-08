@@ -190,7 +190,10 @@ void Application_frontend::Loop(){
     screen.Loop(layout);
 }
 
-
+void Application_frontend::Synchronize(){
+    received_email_vector = app.fetch_received_emails();
+    send_email_vector = app.fetch_sent_emails();
+}
 
 std::vector<Message> Application_frontend::fetch_send_emails(){
     std::vector<Message> emails(5,{{},"send subject","send body"});

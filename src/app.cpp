@@ -34,6 +34,9 @@ bool Application::Is_in_state(State state){
 }
 
 void Application::Change_state(State new_state){
+    if(new_state == State::INBOX){
+        frontend->Synchronize();
+    }
     current_state = new_state;
 }
 

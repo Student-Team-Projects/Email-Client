@@ -17,6 +17,7 @@ class Application_frontend{
 public:
     Application_frontend(Application& app);
     void Loop();
+    void Synchronize();
 private:
     bool Copy_selected_text(ftxui::Event event);
     std::vector<Message> fetch_send_emails();
