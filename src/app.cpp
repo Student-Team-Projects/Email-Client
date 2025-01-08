@@ -69,7 +69,10 @@ void Application::Send_email(const Email_draft& email){
     appPassword = (std::string)(*user)["app_password"];
 
     Mailbox mailbox(senderEmail, appPassword);
-    Message message({{email.recipient}, email.subject, email.message});
+    Message message;
+    message.recipients = {email.recipient};
+    message.subject = email.subject;
+    message.body = email.message;
     mailbox.send(message);
     std::cerr << "email sent"<< std::endl;
 }
