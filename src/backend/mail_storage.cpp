@@ -159,10 +159,14 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
     
     auto root_folder = store->getRootFolder();
     for(auto& folder : root_folder->getFolders()) {
-      if (count++ == 3)
-        break;
+      auto flags = folder->getAttributes().getFlags();
+      
+      if (flags & vmime::net::folderAttributes::FLAG_NO_OPEN) {
+        continue;
+      }
       
       std::vector<Message> emails;
+
 
       // Open the folder
       folder->open(vmime::net::folder::MODE_READ_ONLY);
