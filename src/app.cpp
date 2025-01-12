@@ -89,8 +89,10 @@ std::vector<Folder> Application::fetch_emails(){
 
 void Application::Set_current_email_address(std::string new_address){
     current_email_address = new_address;
+    std::cerr<<"set_current"<<std::endl;
     // Refresh emails immidiately if we have some loaded
     frontend->refresh_emails();
+    std::cerr<<"after_refresh"<<std::endl;
     // And download them
     frontend->Synchronize();
 }

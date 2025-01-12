@@ -69,7 +69,9 @@ namespace log_in{
         // std::cerr << std::endl << account_email << std::endl;
         // std::cerr << std::endl << "Ten NIEFAJNY email NAD" << std::endl;
         app.Set_current_email_address(account_email);
-        app.Change_state(Application::State::INBOX);
+        std::cerr<<"set"<<std::endl;
+        app.Change_state(Application::State::MENU);
+        std::cerr<<"loged"<<std::endl;
     }
 
     std::vector<std::pair<std::string, std::string>> get_signed_in_accounts(){
@@ -104,6 +106,7 @@ namespace log_in{
             std::string label = account.first;
             signed_in_accounts->Add(
                 ftxui::Button(label, [&, account](){
+                    std::cerr<<"clicked"<<std::endl;
                     Log_in_as(account.first);
                 })
             );

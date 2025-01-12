@@ -12,10 +12,8 @@ class Application {
 public:
     enum class State {
         EMAIL_DRAFT,
-        INBOX,
-        SENT_ITEMS,
-        RECEIVED_EMAIL,
-        SENT_EMAIL,
+        MENU,
+        EMAIL_VIEW,
         LOG_IN
     };
     void Run(std::unique_ptr<Application_frontend> front);
