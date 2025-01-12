@@ -158,10 +158,10 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
     std::size_t count = 0;
     
     auto root_folder = store->getRootFolder();
-    for(auto& folder : root_folder->getFolders()) {
-      auto flags = folder->getAttributes().getFlags();
+    for(auto& folder : root_folder->getFolders(true)) {
+      auto flag_no_open = folder->getAttributes().getFlags() & vmime::net::folderAttributes::Flags::FLAG_NO_OPEN;
       
-      if (flags & vmime::net::folderAttributes::FLAG_NO_OPEN) {
+      if (flag_no_open) {
         continue;
       }
       
@@ -173,6 +173,10 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
 
       // Limit the number of messages to 10, change to (1, -1) for all messages
       int messageCount = folder->getMessageCount();
+      if (messageCount == 0) {
+        folder->close(false);
+        continue;
+      }
       int start = std::max(1, messageCount - 10 + 1);
       auto messages = folder->getMessages(vmime::net::messageSet::byNumber(start, messageCount));
 
