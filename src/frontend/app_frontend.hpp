@@ -37,9 +37,15 @@ private:
     Folder current_folder;
     ftxui::Component next_prev_buttons;
     ftxui::Component email_draft_layout;
+    ftxui::Component back_button;
+    ftxui::Component email_control;
+    ftxui::Component email_draft_wrapper;
     //ftxui::Component received_email_layout;
     ftxui::Component email_layout;
+    ftxui::Component email_layout_wrapper;
     ftxui::Component inbox;
+    ftxui::Component inbox_wrapper;
+    ftxui::Component new_mail_button;
     ftxui::Component folder_menu;
     ftxui::Component menu_component;
     ftxui::Component sent_items;

@@ -31,7 +31,11 @@ std::vector<ftxui::Component> show_folder(Application& app, std::vector<Message>
     std::vector<ftxui::Component> buttons;
     for (size_t i = start_index; i < std::min(start_index + 4,messages.size()); ++i) {
         // Be carefull what you pass as a reference -- state would be a dangling reference
-        buttons.push_back(ftxui::Button(messages[i].subject, [&messages, &app, &current_message, state, i] {
+
+        //change in case of many recipients!!
+        Message& message=messages[i];
+        std::string label = message.subject;//+"\nTO:"+message.recipients[0]+"\nFrom:"+message.sender;
+        buttons.push_back(ftxui::Button(label, [&messages, &app, &current_message, state, i] {
             current_message = messages[i];
             app.Change_state(state);
     }));
@@ -46,7 +50,6 @@ std::vector<ftxui::Component> show_menu(Application& app, std::vector<Folder>& f
     for (size_t i = 0; i < folders.size(); ++i) {
         // Be carefull what you pass as a reference -- state would be a dangling reference
         buttons.push_back(ftxui::Button(folders[i].name, [&folders, &app, &current_folder, &current_message,&email_vector,&inbox,&page, state, i] {
-            std::cerr<<"click"<<std::endl;
             page=0;
             current_folder = folders[i];
             email_vector = current_folder.messages;
@@ -89,10 +92,16 @@ Application_frontend::Application_frontend(Application& app) :
         )
     })),
     email_layout( ftxui::Container::Vertical({
-        //ftxui::SelectableText(
-            //&current_send_email.sender,
-            //mail_input_style("From:")
-        //),
+        ftxui::SelectableText(
+            &current_email.sender,
+            mail_input_style("From:")
+        ),
+        ftxui::SelectableText(
+            //change in case of many recipients!!!
+            //Do recipients even work??
+            //&current_email.recipients[0],
+            mail_input_style("To:")
+        ),
         ftxui::SelectableText(
             &current_email.subject,
             mail_input_style("Subject:")
@@ -109,8 +118,8 @@ Application_frontend::Application_frontend(Application& app) :
     ),
     
     next_prev_buttons(
-        ftxui::Container::Horizontal({
-            ftxui::Button("<-", [&]{
+        ftxui::Container::Vertical({
+            ftxui::Button("/\\", [&]{
                 page--;
                 inbox->DetachAllChildren();
                 std::vector<ftxui::Component> buttons
@@ -119,7 +128,7 @@ Application_frontend::Application_frontend(Application& app) :
                     inbox->Add(b);
                 }
             }) | ftxui::Maybe([&]{return page>0 && app.Is_in_state(Application::State::MENU);}),
-            ftxui::Button("->", [&]{
+            ftxui::Button("\\/", [&]{
                 page++;
                 inbox->DetachAllChildren();
                 std::vector<ftxui::Component> buttons 
@@ -133,20 +142,67 @@ Application_frontend::Application_frontend(Application& app) :
         })
     ),
 
+    
+    inbox_wrapper(
+        ftxui::Container::Horizontal({
+            inbox,next_prev_buttons
+        })
+    ),
+
     folder_menu(
         ftxui::Container::Vertical({
             show_menu(app, folder_vector, current_folder, Application::State::MENU,current_email,email_vector,inbox,page)})
     ),
+    new_mail_button(
+        ftxui::Button("New mail", [&]{
+            app.Change_state(Application::State::EMAIL_DRAFT);
+        })
+    ),
     menu_component(
-        ftxui::Container::Vertical({next_prev_buttons,
+        ftxui::Container::Vertical({
+            new_mail_button,
             folder_menu
-            })
+        })
     ),
     
+    back_button(
+        ftxui::Button("Back", [&]{
+            app.Change_state(Application::State::MENU);
+        })
+    ),
+
+    email_control(
+        ftxui::Container::Horizontal({
+            ftxui::Button("Send Email", [&]{
+                app.Send_email(current_email_draft);
+                current_email_draft = Email_draft();
+            }),
+            ftxui::Button("Reset", [&]{
+                current_email_draft = Email_draft();
+            }) 
+        })
+    ),
+
+    email_draft_wrapper(
+        ftxui::Container::Vertical({
+            back_button,
+            email_draft_layout,
+            email_control
+        })
+    ),
+
+    email_layout_wrapper(
+        ftxui::Container::Vertical({
+            back_button,
+            email_layout,
+            //respond??
+        })
+    ),
+
     main_component(ftxui::CatchEvent(ftxui::Container::Horizontal({
-        email_draft_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
-        inbox       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::MENU);}),
-        email_layout | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_VIEW);}),
+        email_draft_wrapper | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
+        inbox_wrapper       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::MENU);}),
+        email_layout_wrapper | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_VIEW);}),
         log_in.visuals | ftxui::Maybe([&]{return app.Is_in_state(Application::State::LOG_IN);}),
     }), [&](ftxui::Event event){
         // If downloading emails finished, update the view
