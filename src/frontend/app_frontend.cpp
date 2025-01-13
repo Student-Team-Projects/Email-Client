@@ -3,6 +3,7 @@
 #include "app.hpp"
 #include "frontend/log_in.hpp"
 #include "iostream"
+#include "app_frontend.hpp"
 
 ftxui::InputOption mail_input_style(const std::string& placeholder) {
     ftxui::InputOption option;
@@ -198,12 +199,29 @@ void Application_frontend::Loop(){
     screen.Loop(layout);
 }
 
-void Application_frontend::Synchronize(){
+/** Start synchronizing the mailbox periodically.
+ * Call this method once when user logs in to a mailbox, and then
+ * the synchronization will be done with breaks of synch_time_in_seconds.
+ */
+void Application_frontend::set_up_synchronization(){
     std::thread synchronize_mailbox([this]{
-        app.synchronize();
-        screen.PostEvent(ftxui::Event::Special("refresh_emails"));
+        while(true) {
+            app.synchronize();
+            screen.PostEvent(ftxui::Event::Special("refresh_emails"));
+
+            std::unique_lock<std::mutex> lock(synch_m);
+            synch_cv.wait_for(lock, std::chrono::seconds(synch_time_in_seconds));
+        }
     });
     synchronize_mailbox.detach();
+}
+
+/** Synchronize the mailbox once.
+ * Call this method when user requests to refresh the mailbox.
+ */
+void Application_frontend::synchronize()
+{
+    synch_cv.notify_one();
 }
 
 void Application_frontend::regenerate_folder(const std::string &folder_name)

@@ -17,7 +17,8 @@ class Application_frontend{
 public:
     Application_frontend(Application& app);
     void Loop();
-    void Synchronize();
+    void set_up_synchronization();
+    void synchronize();
     void refresh_emails();
 private:
     bool Copy_selected_text(ftxui::Event event);
@@ -41,4 +42,8 @@ private:
     ftxui::Component control_panel;
     ftxui::Component layout;
     ftxui::ScreenInteractive screen;
+
+    std::condition_variable synch_cv;
+    std::mutex synch_m;
+    static inline constexpr std::size_t synch_time_in_seconds = 30;
 };

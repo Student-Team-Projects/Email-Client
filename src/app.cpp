@@ -92,7 +92,7 @@ void Application::Set_current_email_address(std::string new_address){
     // Refresh emails immidiately if we have some loaded
     frontend->refresh_emails();
     // And download them
-    frontend->Synchronize();
+    frontend->set_up_synchronization();
 }
 
 std::string Application::Get_current_email_address(){
