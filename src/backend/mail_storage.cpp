@@ -17,7 +17,7 @@ void init_db(sqlite3* db) noexcept
 {
   char* err_msg = nullptr;
   const char* sql = "CREATE TABLE Mails ("
-                    "ID INT PRIMARY KEY,"
+                    "ID INTEGER PRIMARY KEY,"
                     "Sender TEXT NOT NULL,"
                     "Subject TEXT NOT NULL,"
                     "Body TEXT NOT NULL,"
