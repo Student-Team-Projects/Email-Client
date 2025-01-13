@@ -4,6 +4,8 @@
 #include "frontend/log_in.hpp"
 #include "iostream"
 
+constexpr std::size_t page_size = 10;
+
 ftxui::InputOption mail_input_style(const std::string& placeholder) {
     ftxui::InputOption option;
     option.content = "Type your email here";
@@ -29,7 +31,7 @@ ftxui::InputOption mail_input_style(const std::string& placeholder) {
 std::vector<ftxui::Component> show_folder(Application& app, std::vector<Message>& messages,
     Message& current_message, Application::State state, std::size_t start_index, std::size_t count) {
     std::vector<ftxui::Component> buttons;
-    for (size_t i = start_index; i < std::min(start_index + 4,messages.size()); ++i) {
+    for (size_t i = start_index; i < std::min(start_index + page_size,messages.size()); ++i) {
         // Be carefull what you pass as a reference -- state would be a dangling reference
 
         //change in case of many recipients!!
@@ -54,7 +56,7 @@ std::vector<ftxui::Component> show_menu(Application& app, std::vector<Folder>& f
             current_folder = folders[i];
             email_vector = current_folder.messages;
             inbox->DetachAllChildren();
-            std::vector<ftxui::Component> email_buttons = show_folder(app,folders[i].messages,current_message,Application::State::EMAIL_VIEW,0,4);
+            std::vector<ftxui::Component> email_buttons = show_folder(app,folders[i].messages,current_message,Application::State::EMAIL_VIEW,0,page_size);
             for(auto b:email_buttons){
                 inbox->Add(b);
             }
@@ -72,8 +74,9 @@ Application_frontend::Application_frontend(Application& app) :
     current_email_draft(),
     current_email(),
     current_folder(),
-    
-    email_draft_layout( ftxui::Container::Vertical({
+    screen(ftxui::ScreenInteractive::Fullscreen())
+{
+    email_draft_layout = ftxui::Container::Vertical({
         ftxui::SelectableInput(
             &current_email_draft.recipient,
             mail_input_style("To:")
@@ -90,8 +93,8 @@ Application_frontend::Application_frontend(Application& app) :
             "\nGet Email client for Arch!",
             mail_input_style("")
         )
-    })),
-    email_layout( ftxui::Container::Vertical({
+    });
+    email_layout = ftxui::Container::Vertical({
         ftxui::SelectableText(
             &current_email.sender,
             mail_input_style("From:")
@@ -110,68 +113,69 @@ Application_frontend::Application_frontend(Application& app) :
             &current_email.body,
             mail_input_style("Email")
         )
-    })),
-    
-    inbox(
+    });
+
+    inbox = 
         ftxui::Container::Vertical({
-            show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, 0, 4)})
-    ),
+            show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, 0, page_size)});
     
-    next_prev_buttons(
-        ftxui::Container::Vertical({
-            ftxui::Button("/\\", [&]{
+    next_prev_buttons = 
+        ftxui::Container::Horizontal({
+            ftxui::Button("←", [&]{
                 page--;
                 inbox->DetachAllChildren();
                 std::vector<ftxui::Component> buttons
-                    = show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, 4*page, 4);
+                    = show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, page_size*page, page_size);
                 for(auto b : buttons){
                     inbox->Add(b);
                 }
             }) | ftxui::Maybe([&]{return page>0 && app.Is_in_state(Application::State::MENU);}),
-            ftxui::Button("\\/", [&]{
+            ftxui::Button("→", [&]{
                 page++;
                 inbox->DetachAllChildren();
                 std::vector<ftxui::Component> buttons 
-                    = show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, 4*page, 4);
+                    = show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, page_size*page, page_size);
                 for(auto b : buttons){
                     inbox->Add(b);
                 }
                 
-            }) | ftxui::Maybe([&]{return 4*(page+1)<email_vector.size() && app.Is_in_state(Application::State::MENU);}),
+            }) | ftxui::Maybe([&]{return page_size*(page+1)<email_vector.size() && app.Is_in_state(Application::State::MENU);}),
             
-        })
-    ),
+        });
 
     
-    inbox_wrapper(
-        ftxui::Container::Horizontal({
-            inbox,next_prev_buttons
-        })
-    ),
-
-    folder_menu(
+    auto inner_inbox =
         ftxui::Container::Vertical({
-            show_menu(app, folder_vector, current_folder, Application::State::MENU,current_email,email_vector,inbox,page)})
-    ),
-    new_mail_button(
+            inbox, next_prev_buttons
+        }) | ftxui::vscroll_indicator | ftxui::frame |
+                   ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 20);
+
+    inbox_wrapper = ftxui::Container::Vertical({
+        inner_inbox
+    }) | ftxui::border
+       | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 21);
+
+    folder_menu = 
+        ftxui::Container::Vertical({
+            show_menu(app, folder_vector, current_folder, Application::State::MENU,current_email,email_vector,inbox,page)});
+
+    new_mail_button = 
         ftxui::Button("New mail", [&]{
             app.Change_state(Application::State::EMAIL_DRAFT);
-        })
-    ),
-    menu_component(
+        });
+
+    menu_component =
         ftxui::Container::Vertical({
             new_mail_button,
             folder_menu
-        })
-    ),
+        });
     
-    back_button(
+    back_button = 
         ftxui::Button("Back", [&]{
             app.Change_state(Application::State::MENU);
-        })
-    ),
+        });
 
-    email_control(
+    email_control = 
         ftxui::Container::Horizontal({
             ftxui::Button("Send Email", [&]{
                 app.Send_email(current_email_draft);
@@ -180,26 +184,23 @@ Application_frontend::Application_frontend(Application& app) :
             ftxui::Button("Reset", [&]{
                 current_email_draft = Email_draft();
             }) 
-        })
-    ),
+        });
 
-    email_draft_wrapper(
+    email_draft_wrapper = 
         ftxui::Container::Vertical({
             back_button,
             email_draft_layout,
             email_control
-        })
-    ),
+        });
 
-    email_layout_wrapper(
+    email_layout_wrapper = 
         ftxui::Container::Vertical({
             back_button,
             email_layout,
             //respond??
-        })
-    ),
+        });
 
-    main_component(ftxui::CatchEvent(ftxui::Container::Horizontal({
+    main_component = ftxui::CatchEvent(ftxui::Container::Horizontal({
         email_draft_wrapper | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
         inbox_wrapper       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::MENU);}),
         email_layout_wrapper | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_VIEW);}),
@@ -211,9 +212,9 @@ Application_frontend::Application_frontend(Application& app) :
         }
 
         return Copy_selected_text(event);
-    })),
+    });
     
-    control_panel(ftxui::Container::Vertical({
+    control_panel = ftxui::Container::Vertical({
         ftxui::Container::Horizontal({
             ftxui::Button("Send Email", [&]{
                 app.Send_email(current_email_draft);
@@ -239,13 +240,11 @@ Application_frontend::Application_frontend(Application& app) :
         // draj sraj
         
         
-    })| ftxui::Maybe([&]{return !app.Is_in_state(Application::State::LOG_IN);})),
+    })| ftxui::Maybe([&]{return !app.Is_in_state(Application::State::LOG_IN);});
     
-    layout(ftxui::Container::Horizontal({menu_component| ftxui::Maybe([&]{return !app.Is_in_state(Application::State::LOG_IN);}) | ftxui::flex_shrink,
-         main_component | ftxui::flex_shrink})),
-
-    screen(ftxui::ScreenInteractive::Fullscreen())
-{}
+    layout = ftxui::Container::Horizontal({menu_component| ftxui::Maybe([&]{return !app.Is_in_state(Application::State::LOG_IN);}) | ftxui::flex_shrink,
+         main_component | ftxui::flex_shrink});
+}
 
 void Application_frontend::Loop(){
     screen.Loop(layout);
