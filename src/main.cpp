@@ -5,5 +5,5 @@
 int main(){
     Application app;
     auto frontend = std::make_unique<Application_frontend>(app);
-    app.Run(std::move(frontend));
+    app.run(std::move(frontend));
 }
