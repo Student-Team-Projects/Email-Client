@@ -16,11 +16,10 @@ struct Email_draft{
 class Application_frontend{
 public:
     Application_frontend(Application& app);
-    void Loop();
-    void Synchronize();
+    void loop();
+    void synchronize();
     void refresh_emails();
 private:
-    bool Copy_selected_text(ftxui::Event event);
     //void regenerate_folder(const std::string& folder_name);
     void regenerate_menu();
 

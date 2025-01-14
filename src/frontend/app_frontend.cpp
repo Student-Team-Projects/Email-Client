@@ -39,7 +39,7 @@ std::vector<ftxui::Component> show_folder(Application& app, std::vector<Message>
         std::string label = message.subject;//+"\nTO:"+message.recipients[0]+"\nFrom:"+message.sender;
         buttons.push_back(ftxui::Button(label, [&messages, &app, &current_message, state, i] {
             current_message = messages[i];
-            app.Change_state(state);
+            app.change_state(state);
     }));
     }
     return buttons;
@@ -60,7 +60,7 @@ std::vector<ftxui::Component> show_menu(Application& app, std::vector<Folder>& f
             for(auto b:email_buttons){
                 inbox->Add(b);
             }
-            app.Change_state(state);
+            app.change_state(state);
     }));
     }
     return buttons;
@@ -129,7 +129,7 @@ Application_frontend::Application_frontend(Application& app) :
                 for(auto b : buttons){
                     inbox->Add(b);
                 }
-            }) | ftxui::Maybe([&]{return page>0 && app.Is_in_state(Application::State::MENU);}),
+            }) | ftxui::Maybe([&]{return page>0 && app.is_in_state(Application::State::MENU);}),
             ftxui::Button("→", [&]{
                 page++;
                 inbox->DetachAllChildren();
@@ -139,7 +139,7 @@ Application_frontend::Application_frontend(Application& app) :
                     inbox->Add(b);
                 }
                 
-            }) | ftxui::Maybe([&]{return page_size*(page+1)<email_vector.size() && app.Is_in_state(Application::State::MENU);}),
+            }) | ftxui::Maybe([&]{return page_size*(page+1)<email_vector.size() && app.is_in_state(Application::State::MENU);}),
             
         });
 
@@ -161,7 +161,7 @@ Application_frontend::Application_frontend(Application& app) :
 
     new_mail_button = 
         ftxui::Button("New mail", [&]{
-            app.Change_state(Application::State::EMAIL_DRAFT);
+            app.change_state(Application::State::EMAIL_DRAFT);
         });
 
     menu_component =
@@ -172,13 +172,13 @@ Application_frontend::Application_frontend(Application& app) :
     
     back_button = 
         ftxui::Button("Back", [&]{
-            app.Change_state(Application::State::MENU);
+            app.change_state(Application::State::MENU);
         });
 
     email_control = 
         ftxui::Container::Horizontal({
             ftxui::Button("Send Email", [&]{
-                app.Send_email(current_email_draft);
+                app.send_email(current_email_draft);
                 current_email_draft = Email_draft();
             }),
             ftxui::Button("Reset", [&]{
@@ -201,60 +201,61 @@ Application_frontend::Application_frontend(Application& app) :
         });
 
     main_component = ftxui::CatchEvent(ftxui::Container::Horizontal({
-        email_draft_wrapper | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
-        inbox_wrapper       | ftxui::Maybe([&]{return app.Is_in_state(Application::State::MENU);}),
-        email_layout_wrapper | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_VIEW);}),
-        log_in.visuals | ftxui::Maybe([&]{return app.Is_in_state(Application::State::LOG_IN);}),
+        email_draft_wrapper | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_DRAFT);}),
+        inbox_wrapper       | ftxui::Maybe([&]{return app.is_in_state(Application::State::MENU);}),
+        email_layout_wrapper | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_VIEW);}),
+        log_in.visuals | ftxui::Maybe([&]{return app.is_in_state(Application::State::LOG_IN);}),
     }), [&](ftxui::Event event){
         // If downloading emails finished, update the view
         if (event.input() == "refresh_emails") {
             refresh_emails();
         }
 
-        return Copy_selected_text(event);
+        return false;
     });
     
     control_panel = ftxui::Container::Vertical({
         ftxui::Container::Horizontal({
             ftxui::Button("Send Email", [&]{
-                app.Send_email(current_email_draft);
+                app.send_email(current_email_draft);
                 current_email_draft = Email_draft();
             }) 
-            | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);}),
+            | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_DRAFT);}),
             ftxui::Button("Reset", [&]{
                 current_email_draft = Email_draft();
-            }) | ftxui::Maybe([&]{return app.Is_in_state(Application::State::EMAIL_DRAFT);})
+            }) | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_DRAFT);})
         }),
         ftxui::Container::Horizontal({
             ftxui::Button("New mail", [&]{
-                app.Change_state(Application::State::EMAIL_DRAFT);
+                app.change_state(Application::State::EMAIL_DRAFT);
             }),
             ftxui::Button("Inbox", [&]{
-                app.Change_state(Application::State::MENU);
+                app.change_state(Application::State::MENU);
             }),
             ftxui::Button("Sent items", [&]{
-                app.Change_state(Application::State::MENU);
+                app.change_state(Application::State::MENU);
             })
         }),
         // All of this should be unified -- violates DRY
         // draj sraj
         
         
-    })| ftxui::Maybe([&]{return !app.Is_in_state(Application::State::LOG_IN);});
+    })| ftxui::Maybe([&]{return !app.is_in_state(Application::State::LOG_IN);});
     
-    layout = ftxui::Container::Horizontal({menu_component| ftxui::Maybe([&]{return !app.Is_in_state(Application::State::LOG_IN);}) | ftxui::flex_shrink,
+    layout = ftxui::Container::Horizontal({menu_component| ftxui::Maybe([&]{return !app.is_in_state(Application::State::LOG_IN);}) | ftxui::flex_shrink,
          main_component | ftxui::flex_shrink});
 }
 
-void Application_frontend::Loop(){
+void Application_frontend::loop(){
     screen.Loop(layout);
 }
 
-void Application_frontend::Synchronize(){
+void Application_frontend::synchronize(){
     std::thread synchronize_mailbox([this]{
         app.synchronize();
         screen.PostEvent(ftxui::Event::Special("refresh_emails"));
     });
+
     synchronize_mailbox.detach();
 }
 
@@ -283,17 +284,6 @@ void Application_frontend::regenerate_menu()
     for(auto b : buttons){
         folder_menu->Add(b);
     }
-}
-
-
-bool Application_frontend::Copy_selected_text(ftxui::Event event)
-{
-  // if (event == ftxui::Event::Special("\x19")) { //Ctrl+Y
-  //     std::string command = "echo '" + current_email_draft.message + "' | xclip -selection clipboard";
-  //     std::system(command.c_str());
-  //     return true;
-  // }
-  return false;
 }
 
 void Application_frontend::refresh_emails()
