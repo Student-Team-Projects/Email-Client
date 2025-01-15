@@ -1,12 +1,14 @@
 #include "mail_storage.h"
-#include <iostream>
-#include <filesystem>
-#include <vector>
-
-#include <vmime/vmime.hpp>
 
 #include "html_parser.h"
 #include "certificate.h"
+
+#include <iostream>
+#include <filesystem>
+#include <vector>
+#include <cassert>
+
+#include <vmime/vmime.hpp>
 
 std::string get_db_path(const std::string &email) noexcept
 {
@@ -172,13 +174,16 @@ std::pair<std::vector<Message>, bool> fetch_emails(const std::string &email, con
 
     // Limit the number of messages to 100, change to (1, -1) for all messages
     int messageCount = folder->getMessageCount();
-    int start = std::max(1, messageCount - 50 + 1);
+    int start = std::max(1, messageCount - 5 + 1);
     auto messages = folder->getMessages(vmime::net::messageSet::byNumber(start, messageCount));
 
     folder->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
     vmime::utility::outputStreamAdapter os(std::cout);
 
+    int counter = 0;
+    std::cerr << "Processing folder " << folder_name << std::endl;
     for (const auto& message : messages) {
+      std::cerr << "Processing email " << ++counter << " of " << messages.size() << std::endl;
       try{
         // Extract header and body content
         auto header = message->getHeader();
