@@ -84,29 +84,13 @@ Application_frontend::Application_frontend(Application& app) :
     
     page(0),
     log_in(log_in::get_log_in_data(app)),
-    current_email_draft(),
     current_email(),
     current_folder(),
-    screen(ftxui::ScreenInteractive::Fullscreen())
-{
-    email_draft_layout = ftxui::Container::Vertical({
-        ftxui::SelectableInput(
-            &current_email_draft.recipient,
-            mail_input_style("To:")
-        ) | ftxui::flex_shrink,
-        ftxui::SelectableInput(
-            &current_email_draft.subject,
-            mail_input_style("Subject:")
-        ) | ftxui::flex_shrink,
-        SelectableInput(
-            &current_email_draft.message,
-            mail_input_style("Email")
-        ) | ftxui::flex_shrink,
-        SelectableText(
-            "\nGet Email client for Arch!",
-            mail_input_style("")
-        )
-    });
+    screen(ftxui::ScreenInteractive::Fullscreen()),
+    email_draft_layout(app)
+{   
+
+    //once
     email_layout = ftxui::Container::Vertical({
         ftxui::SelectableText(
             &current_email.sender,
@@ -132,6 +116,7 @@ Application_frontend::Application_frontend(Application& app) :
         ftxui::Container::Vertical({
             show_folder(email_vector, current_email, Application::State::EMAIL_VIEW, 0, page_size)});
     
+    //once
     next_prev_buttons = 
         ftxui::Container::Horizontal({
             ftxui::Button("←", [&]{
@@ -156,6 +141,7 @@ Application_frontend::Application_frontend(Application& app) :
             
         });
 
+    //once
     inbox_wrapper = ftxui::Container::Vertical({
             inbox, next_prev_buttons
         }) | ftxui::vscroll_indicator | ftxui::frame 
@@ -166,40 +152,26 @@ Application_frontend::Application_frontend(Application& app) :
         ftxui::Container::Vertical({
             show_menu(folder_vector, current_folder, Application::State::MENU,current_email,email_vector,inbox,page)});
 
+    //once
     new_mail_button = 
         ftxui::Button("New mail", [&]{
             app.change_state(Application::State::EMAIL_DRAFT);
         });
 
+    //once
     menu_component =
         ftxui::Container::Vertical({
             new_mail_button,
             folder_menu
         });
     
+    //once
     back_button = 
-        ftxui::Button("Back", [&]{
-            app.change_state(Application::State::MENU);
-        });
+    ftxui::Button("Back", [&]{
+        app.change_state(Application::State::MENU);
+    });
 
-    email_control = 
-        ftxui::Container::Horizontal({
-            ftxui::Button("Send Email", [&]{
-                app.send_email(current_email_draft);
-                current_email_draft = Email_draft();
-            }),
-            ftxui::Button("Reset", [&]{
-                current_email_draft = Email_draft();
-            }) 
-        });
-
-    email_draft_wrapper = 
-        ftxui::Container::Vertical({
-            back_button,
-            email_draft_layout,
-            email_control
-        });
-
+    //once
     email_layout_wrapper = 
         ftxui::Container::Vertical({
             back_button,
@@ -207,8 +179,9 @@ Application_frontend::Application_frontend(Application& app) :
             //respond??
         });
 
+    //once
     main_component = ftxui::CatchEvent(ftxui::Container::Horizontal({
-        email_draft_wrapper | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_DRAFT);}),
+        email_draft_layout.get_email_draft_component() | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_DRAFT);}),
         inbox_wrapper       | ftxui::Maybe([&]{return app.is_in_state(Application::State::MENU);}),
         email_layout_wrapper | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_VIEW);}),
         log_in.visuals | ftxui::Maybe([&]{return app.is_in_state(Application::State::LOG_IN);}),
@@ -220,34 +193,6 @@ Application_frontend::Application_frontend(Application& app) :
 
         return false;
     });
-    
-    control_panel = ftxui::Container::Vertical({
-        ftxui::Container::Horizontal({
-            ftxui::Button("Send Email", [&]{
-                app.send_email(current_email_draft);
-                current_email_draft = Email_draft();
-            }) 
-            | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_DRAFT);}),
-            ftxui::Button("Reset", [&]{
-                current_email_draft = Email_draft();
-            }) | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_DRAFT);})
-        }),
-        ftxui::Container::Horizontal({
-            ftxui::Button("New mail", [&]{
-                app.change_state(Application::State::EMAIL_DRAFT);
-            }),
-            ftxui::Button("Inbox", [&]{
-                app.change_state(Application::State::MENU);
-            }),
-            ftxui::Button("Sent items", [&]{
-                app.change_state(Application::State::MENU);
-            })
-        }),
-        // All of this should be unified -- violates DRY
-        // draj sraj
-        
-        
-    })| ftxui::Maybe([&]{return !app.is_in_state(Application::State::LOG_IN);});
     
     layout = ftxui::Container::Horizontal({menu_component| ftxui::Maybe([&]{return !app.is_in_state(Application::State::LOG_IN);}) | ftxui::flex_shrink,
          main_component | ftxui::flex_shrink});
