@@ -1,10 +1,13 @@
 #include "frontend/app_frontend.hpp"
 #include "frontend/select_input.cpp"
-#include "app.hpp"
 #include "frontend/log_in.hpp"
 #include "iostream"
 
-constexpr std::size_t page_size = 10;
+#include <codecvt>
+#include <locale>
+#include <string>
+
+constexpr std::size_t page_size = 7;
 
 ftxui::InputOption mail_input_style(const std::string& placeholder) {
     ftxui::InputOption option;
@@ -28,7 +31,7 @@ ftxui::InputOption mail_input_style(const std::string& placeholder) {
     return option;
 }
 
-std::vector<ftxui::Component> show_folder(Application& app, std::vector<Message>& messages,
+std::vector<ftxui::Component> Application_frontend::show_folder(std::vector<Message>& messages,
     Message& current_message, Application::State state, std::size_t start_index, std::size_t count) {
     std::vector<ftxui::Component> buttons;
     for (size_t i = start_index; i < std::min(start_index + page_size,messages.size()); ++i) {
@@ -36,27 +39,37 @@ std::vector<ftxui::Component> show_folder(Application& app, std::vector<Message>
 
         //change in case of many recipients!!
         Message& message=messages[i];
-        std::string label = message.subject;//+"\nTO:"+message.recipients[0]+"\nFrom:"+message.sender;
-        buttons.push_back(ftxui::Button(label, [&messages, &app, &current_message, state, i] {
+
+        // delete when supporting wstrings everywhere
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+
+        std::wstring subject = add_elipsis(L"Subject: " + converter.from_bytes(message.subject), 50);
+        std::wstring sender = add_elipsis(converter.from_bytes(message.sender), 20);
+        std::wstring recipient = message.recipients.size() > 0 ? 
+                    add_elipsis(converter.from_bytes(message.recipients[0]), 20) : L"";
+
+        buttons.push_back(ftxui::Renderer([sender, recipient] { return ftxui::text(L"From: " + sender + L" To: " + recipient); }));
+        buttons.push_back(ftxui::Button(subject, [&messages, &current_message, state, i, this] {
             current_message = messages[i];
             app.change_state(state);
-    }));
+            }));
+        buttons.push_back(ftxui::Renderer([] { return ftxui::separator(); }));
     }
     return buttons;
 }
 
 
-std::vector<ftxui::Component> show_menu(Application& app, std::vector<Folder>& folders,
+std::vector<ftxui::Component> Application_frontend::show_menu(std::vector<Folder>& folders,
     Folder& current_folder, Application::State state,Message& current_message,std::vector<Message>& email_vector,ftxui::Component& inbox,int& page) {
     std::vector<ftxui::Component> buttons;
     for (size_t i = 0; i < folders.size(); ++i) {
         // Be carefull what you pass as a reference -- state would be a dangling reference
-        buttons.push_back(ftxui::Button(folders[i].name, [&folders, &app, &current_folder, &current_message,&email_vector,&inbox,&page, state, i] {
+        buttons.push_back(ftxui::Button(folders[i].name, [&folders, &current_folder, &current_message,&email_vector,&inbox,&page, state, i, this] {
             page=0;
             current_folder = folders[i];
             email_vector = current_folder.messages;
             inbox->DetachAllChildren();
-            std::vector<ftxui::Component> email_buttons = show_folder(app,folders[i].messages,current_message,Application::State::EMAIL_VIEW,0,page_size);
+            std::vector<ftxui::Component> email_buttons = show_folder(folders[i].messages,current_message,Application::State::EMAIL_VIEW,0,page_size);
             for(auto b:email_buttons){
                 inbox->Add(b);
             }
@@ -117,7 +130,7 @@ Application_frontend::Application_frontend(Application& app) :
 
     inbox = 
         ftxui::Container::Vertical({
-            show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, 0, page_size)});
+            show_folder(email_vector, current_email, Application::State::EMAIL_VIEW, 0, page_size)});
     
     next_prev_buttons = 
         ftxui::Container::Horizontal({
@@ -125,7 +138,7 @@ Application_frontend::Application_frontend(Application& app) :
                 page--;
                 inbox->DetachAllChildren();
                 std::vector<ftxui::Component> buttons
-                    = show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, page_size*page, page_size);
+                    = show_folder(email_vector, current_email, Application::State::EMAIL_VIEW, page_size*page, page_size);
                 for(auto b : buttons){
                     inbox->Add(b);
                 }
@@ -134,7 +147,7 @@ Application_frontend::Application_frontend(Application& app) :
                 page++;
                 inbox->DetachAllChildren();
                 std::vector<ftxui::Component> buttons 
-                    = show_folder(app, email_vector, current_email, Application::State::EMAIL_VIEW, page_size*page, page_size);
+                    = show_folder(email_vector, current_email, Application::State::EMAIL_VIEW, page_size*page, page_size);
                 for(auto b : buttons){
                     inbox->Add(b);
                 }
@@ -143,21 +156,15 @@ Application_frontend::Application_frontend(Application& app) :
             
         });
 
-    
-    auto inner_inbox =
-        ftxui::Container::Vertical({
-            inbox, next_prev_buttons
-        }) | ftxui::vscroll_indicator | ftxui::frame |
-                   ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 20);
-
     inbox_wrapper = ftxui::Container::Vertical({
-        inner_inbox
-    }) | ftxui::border
-       | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 21);
+            inbox, next_prev_buttons
+        }) | ftxui::vscroll_indicator | ftxui::frame 
+           | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 20)
+           | ftxui::border;
 
     folder_menu = 
         ftxui::Container::Vertical({
-            show_menu(app, folder_vector, current_folder, Application::State::MENU,current_email,email_vector,inbox,page)});
+            show_menu(folder_vector, current_folder, Application::State::MENU,current_email,email_vector,inbox,page)});
 
     new_mail_button = 
         ftxui::Button("New mail", [&]{
@@ -298,10 +305,18 @@ void Application_frontend::regenerate_menu()
 {
     folder_menu->DetachAllChildren();
     std::vector<ftxui::Component> buttons
-        = show_menu(app, folder_vector, current_folder, Application::State::MENU,current_email,email_vector,inbox,page);
+        = show_menu(folder_vector, current_folder, Application::State::MENU,current_email,email_vector,inbox,page);
     for(auto b : buttons){
         folder_menu->Add(b);
     }
+}
+
+std::wstring Application_frontend::add_elipsis(const std::wstring &str, size_t max_size)
+{
+    if (str.size() <= max_size) {
+        return str;
+    }
+    return str.substr(0, max_size - 3) + L"...";
 }
 
 void Application_frontend::refresh_emails()

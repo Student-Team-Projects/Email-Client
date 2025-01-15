@@ -3,6 +3,7 @@
 #include "ftxui/component/component.hpp"
 #include "backend/mailbox.h"
 #include "frontend/log_in.hpp"
+#include "app.hpp"
 
 class Application;
 
@@ -23,6 +24,13 @@ public:
 private:
     //void regenerate_folder(const std::string& folder_name);
     void regenerate_menu();
+    std::wstring add_elipsis(const std::wstring& str, size_t max_size);
+    std::vector<ftxui::Component> show_folder(std::vector<Message>& messages, Message& current_message, 
+        Application::State state, std::size_t start_index, std::size_t count);
+    std::vector<ftxui::Component> show_menu(std::vector<Folder>& folders, Folder& current_folder, 
+        Application::State state, Message& current_message, std::vector<Message>& email_vector,
+        ftxui::Component& inbox, int& page);
+
 
     Application& app;
     log_in::Log_in_data log_in;

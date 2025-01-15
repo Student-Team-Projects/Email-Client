@@ -177,7 +177,7 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
         folder->close(false);
         continue;
       }
-      int start = std::max(1, messageCount - 10 + 1);
+      int start = std::max(1, messageCount - 30 + 1);
       auto messages = folder->getMessages(vmime::net::messageSet::byNumber(start, messageCount));
 
       folder->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
