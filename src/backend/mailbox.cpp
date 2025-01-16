@@ -20,9 +20,7 @@ void Mailbox::send(const Message &message) noexcept
 {
   try {
     vmime::addressList to;
-    for (const auto &recipient : message.recipients) {
-      to.appendAddress(vmime::make_shared<vmime::mailbox>(recipient));
-    }
+    to.appendAddress(vmime::make_shared<vmime::mailbox>(message.recipient));
 
     vmime::messageBuilder mb;
     mb.setExpeditor(vmime::mailbox(email));

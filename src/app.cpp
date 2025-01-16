@@ -67,7 +67,7 @@ void Application::send_email(const Email_draft& email){
 
     Mailbox mailbox(senderEmail, appPassword);
     Message message;
-    message.recipients = {email.recipient};
+    message.recipient = email.recipient;
     message.subject = email.subject;
     message.body = email.message;
     mailbox.send(message);
