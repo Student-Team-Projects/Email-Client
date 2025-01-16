@@ -20,8 +20,8 @@ namespace log_in{
 
         Log_in_data(const Log_in_data&);
         Log_in_data(Application&);
-        void Update_signed_in_accounts();
-        void Log_in_as(const std::string);
+        void update_signed_in_accounts();
+        void log_in_as(const std::string);
     };
 
     void add_account(const std::pair<std::string, std::string>& new_account);

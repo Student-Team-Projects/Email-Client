@@ -9,3 +9,8 @@ struct Message {
   std::string subject;
   std::string body;
 };
+
+struct Folder {
+  std::string name;
+  std::vector<Message> messages;
+};

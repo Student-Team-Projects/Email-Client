@@ -27,16 +27,16 @@ namespace log_in{
         accounts_buttons =ftxui::Container::Horizontal({
             ftxui::Button("Next", [&]{
                 page++;
-                Update_signed_in_accounts();
+                update_signed_in_accounts();
             }) | ftxui::Maybe([&]{return page_size*(page + 1) <= get_signed_in_accounts().size();}),
             ftxui::Button("Previous", [&]{
                 page--;
-                Update_signed_in_accounts();
+                update_signed_in_accounts();
             }) | ftxui::Maybe([&]{return page > 0;}),
         });
         
         signed_in_accounts = ftxui::Container::Vertical({});
-        Update_signed_in_accounts();
+        update_signed_in_accounts();
 
         accounts = ftxui::Container::Vertical({
             signed_in_accounts,
@@ -54,7 +54,7 @@ namespace log_in{
             ftxui::Button("Add account", [&]{
                 std::cerr << "ADDED NEW ACCOUNT " << new_account_mail << " " << "with some password" << std::endl;
                 add_account({new_account_mail, new_account_password});
-                Update_signed_in_accounts();
+                update_signed_in_accounts();
             })
         });
 
@@ -64,12 +64,14 @@ namespace log_in{
         });
     }
 
-    void Log_in_data::Log_in_as(const std::string account_email){
+    void Log_in_data::log_in_as(const std::string account_email){
         // std::cerr << std::endl << "Ten NIEFAJNY email POD" << std::endl;
         // std::cerr << std::endl << account_email << std::endl;
         // std::cerr << std::endl << "Ten NIEFAJNY email NAD" << std::endl;
-        app.Set_current_email_address(account_email);
-        app.Change_state(Application::State::INBOX);
+        app.set_current_email_address(account_email);
+        std::cerr<<"set"<<std::endl;
+        app.change_state(Application::State::MENU);
+        std::cerr<<"loged"<<std::endl;
     }
 
     std::vector<std::pair<std::string, std::string>> get_signed_in_accounts(){
@@ -94,7 +96,7 @@ namespace log_in{
         return emails_passwords;
     }
 
-    void Log_in_data::Update_signed_in_accounts(){
+    void Log_in_data::update_signed_in_accounts(){
         signed_in_accounts->DetachAllChildren();
         const auto& signed_in_accounts_data = get_signed_in_accounts();
 
@@ -104,7 +106,8 @@ namespace log_in{
             std::string label = account.first;
             signed_in_accounts->Add(
                 ftxui::Button(label, [&, account](){
-                    Log_in_as(account.first);
+                    std::cerr<<"clicked"<<std::endl;
+                    log_in_as(account.first);
                 })
             );
         }
