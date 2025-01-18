@@ -34,7 +34,16 @@ bool Application::is_in_state(State state){
 }
 
 void Application::change_state(State new_state){
+    auto old_state = current_state;
     current_state = new_state;
+
+    for(auto on_event : on_state_change_events){
+        on_event(old_state, new_state);
+    }
+}
+
+void Application::add_on_state_change_event(std::function<void(State, State)> on_event){
+    on_state_change_events.push_back(on_event);
 }
 
 void Application::send_email(const Email_draft& email){
@@ -102,9 +111,10 @@ std::string Application::get_current_email_address(){
 }
 
 Application::Application() 
-:   current_state(State::LOG_IN)
+:   current_state(State::INVALID)
 {
     setup_config_file();
+    change_state(State::LOG_IN);
 }
 
 Mailbox Application::get_current_mailbox()

@@ -177,18 +177,36 @@ Application_frontend::Application_frontend(Application& app) :
         });
 
     //once
-    main_component = ftxui::CatchEvent(ftxui::Container::Horizontal({
+    main_component = ftxui::CatchEvent(ftxui::Container::Vertical({
+        log_in.visuals | ftxui::Maybe([&]{return app.is_in_state(Application::State::LOG_IN);}),
         email_draft_layout.get_email_draft_component() | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_DRAFT);}),
         inbox_wrapper       | ftxui::Maybe([&]{return app.is_in_state(Application::State::MENU);}),
         email_layout_wrapper | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_VIEW);}),
-        log_in.visuals | ftxui::Maybe([&]{return app.is_in_state(Application::State::LOG_IN);}),
     }), [&](ftxui::Event event){
         // If downloading emails finished, update the view
         if (event.input() == "refresh_emails") {
             refresh_emails();
+            return true;
         }
 
         return false;
+    });
+
+    app.add_on_state_change_event([this](Application::State old_state, Application::State new_state){
+        switch(new_state){
+            case Application::State::LOG_IN:
+                menu_component->TakeFocus();    
+                break;
+            case Application::State::EMAIL_DRAFT:
+                menu_component->TakeFocus();    
+                break;
+            case Application::State::MENU:
+                menu_component->TakeFocus();    
+                break;
+            case Application::State::EMAIL_VIEW:
+                menu_component->TakeFocus();    
+                break;
+        };
     });
     
     layout = ftxui::Container::Horizontal({menu_component| ftxui::Maybe([&]{return !app.is_in_state(Application::State::LOG_IN);}) | ftxui::flex_shrink,
