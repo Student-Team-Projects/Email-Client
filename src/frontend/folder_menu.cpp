@@ -105,8 +105,7 @@ std::vector<ftxui::Component> Folder_menu::show_folder(std::vector<Message>& mes
 
         std::wstring subject = add_elipsis(L"Subject: " + converter.from_bytes(message.subject), 50);
         std::wstring sender = add_elipsis(converter.from_bytes(message.sender), 20);
-        std::wstring recipient = message.recipients.size() > 0 ? 
-                    add_elipsis(converter.from_bytes(message.recipients[0]), 20) : L"";
+        std::wstring recipient = add_elipsis(converter.from_bytes(message.recipient), 20);
 
         buttons.push_back(ftxui::Renderer([sender, recipient] { return ftxui::text(L"From: " + sender + L" To: " + recipient); }));
         buttons.push_back(ftxui::Button(subject, [&messages, &current_message, state, i, this] {
