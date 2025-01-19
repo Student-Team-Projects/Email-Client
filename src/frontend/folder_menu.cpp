@@ -22,7 +22,9 @@ Folder_menu::Folder_menu(Application& app, Message& current_email, std::vector<F
         show_menu(folder_vector, current_folder, Application::State::MENU, current_email, email_vector, inbox, page)
     });
 
-    inbox = ftxui::Container::Vertical({});
+    inbox = ftxui::Container::Vertical({ftxui::Renderer([] {
+            return ftxui::text("Loading...");
+    })});
 
     auto next_prev_buttons = 
         ftxui::Container::Horizontal({
@@ -74,6 +76,23 @@ ftxui::Component Folder_menu::get_inbox_layout(){
 std::vector<ftxui::Component> Folder_menu::show_menu(std::vector<Folder>& folders,
     Folder& current_folder, Application::State state,Message& current_message,std::vector<Message>& email_vector,ftxui::Component& inbox,int& page) {
     std::vector<ftxui::Component> buttons;
+    if(folders.size()==0){
+        return {ftxui::Renderer([] {
+            return ftxui::text("Loading...");
+            })
+        };
+    }else if(current_folder.name==""){
+        //code duplication, violates something, idc
+        page=0;
+        current_folder = folders[0];
+        email_vector = current_folder.messages;
+        inbox->DetachAllChildren();
+        std::vector<ftxui::Component> email_buttons = show_folder(folders[0].messages,current_message,Application::State::EMAIL_VIEW,0,page_size);
+        for(auto b:email_buttons){
+            inbox->Add(b);
+        }
+        app.change_state(state);
+    }
     for (size_t i = 0; i < folders.size(); ++i) {
         // Be carefull what you pass as a reference -- state would be a dangling reference
         buttons.push_back(ftxui::Button(folders[i].name, [&folders, &current_folder, &current_message,&email_vector,&inbox,&page, state, i, this] {

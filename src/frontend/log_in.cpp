@@ -99,6 +99,13 @@ namespace log_in{
     void Log_in_data::update_signed_in_accounts(){
         signed_in_accounts->DetachAllChildren();
         const auto& signed_in_accounts_data = get_signed_in_accounts();
+        if (signed_in_accounts_data.size()==0){
+            signed_in_accounts->Add(
+                ftxui::Renderer([] {
+                    return ftxui::text("No accounts added");
+                })
+            );
+        }
 
         for(int i = page * page_size; i >= 0 && i < (page + 1) * page_size && i < (int) signed_in_accounts_data.size(); ++i){
             // std::cerr<< signed_in_accounts_data[i].first << " " << signed_in_accounts_data[i].second << std::endl;
