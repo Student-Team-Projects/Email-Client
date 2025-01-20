@@ -11,13 +11,14 @@
 #include <nlohmann/json.hpp>
 
 namespace{
+
     void setup_config_file(){
-        std::ifstream config_file;
-        config_file.open ("config.json", std::ifstream::in);
-        
-        if(config_file.peek() == std::ifstream::traits_type::eof()){
-            config_file.close();
-            std::ofstream config_file_new("config.json");
+        std::filesystem::create_directories(Application::get_home_path() / ".email_client");
+
+        bool needs_init = !std::filesystem::exists(Application::get_config_path());
+
+        if(needs_init){
+            std::ofstream config_file_new(Application::get_config_path());
             config_file_new << "[]" << std::endl; 
             config_file_new.close();
         }
@@ -43,7 +44,7 @@ void Application::send_email(const Email_draft& email){
         return;
     }
 
-    std::ifstream configFile("config.json");
+    std::ifstream configFile(get_config_path());
     if (!configFile){
         std::cerr << "Failed to open config.json"<< std::endl;
     }
@@ -87,6 +88,22 @@ std::vector<Folder> Application::fetch_emails(){
     return emails;
 }
 
+std::filesystem::path Application::get_home_path() noexcept
+{
+    const char* home = std::getenv("HOME");
+    if (home == nullptr) {
+        std::cerr << "Failed to get home directory" << std::endl;
+        return std::filesystem::current_path();
+    }
+
+    return std::filesystem::path(home);
+}
+
+std::string Application::get_config_path()
+{
+    return Application::get_home_path() / ".email_client/config.json";
+}
+
 void Application::set_current_email_address(std::string new_address){
     current_email_address = new_address;
     std::cerr<<"set_current"<<std::endl;
@@ -109,7 +126,7 @@ Application::Application()
 
 Mailbox Application::get_current_mailbox()
 {
-    std::ifstream configFile("config.json");
+    std::ifstream configFile(get_config_path());
     if (!configFile){
         std::cerr << "Failed to open config.json"<< std::endl;
     }

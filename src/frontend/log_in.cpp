@@ -75,21 +75,16 @@ namespace log_in{
     }
 
     std::vector<std::pair<std::string, std::string>> get_signed_in_accounts(){
-        std::ifstream configFile("config.json");
+        std::ifstream configFile(Application::get_config_path());
         if (!configFile){ 
             std::cerr << "Failed to open config.json"<< std::endl;
         }
 
-        std::cerr << "managed to open config.json"<< std::endl;
-
         nlohmann::json config;
         configFile >> config;
 
-        // std::cerr << config << std::endl;
-
         std::vector<std::pair<std::string, std::string>> emails_passwords;
         for(auto& account : config){
-            // std::cerr << account << std::endl;
             emails_passwords.push_back({std::string(account["sender_email"]), std::string(account["app_password"])});
         }
 
@@ -121,12 +116,10 @@ namespace log_in{
     }
 
     void add_account(const std::pair<std::string, std::string>& new_account){
-        std::ifstream configFile("config.json");
+        std::ifstream configFile(Application::get_config_path());
         if (!configFile){ 
             std::cerr << "Failed to open config.json"<< std::endl;
         }
-
-        std::cerr << "managed to open config.json"<< std::endl;
 
         nlohmann::json config;
         configFile >> config;
@@ -137,7 +130,7 @@ namespace log_in{
         config.push_back(new_account_json);
 
         configFile.close();
-        std::ofstream new_config_file("config.json", std::ios::trunc);
+        std::ofstream new_config_file(Application::get_config_path(), std::ios::trunc);
         new_config_file << config;
     }
 

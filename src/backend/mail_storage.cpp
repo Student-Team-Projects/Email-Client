@@ -2,6 +2,7 @@
 
 #include "html_parser.h"
 #include "certificate.h"
+#include "app.hpp"
 
 #include <iostream>
 #include <filesystem>
@@ -10,9 +11,9 @@
 
 #include <vmime/vmime.hpp>
 
-std::string get_db_path(const std::string &email) noexcept
+std::filesystem::path get_db_path(const std::string &email) noexcept
 {
-  return "data/" + email + ".db";
+  return Application::get_home_path() / ".email_client/data" / (email + ".db");
 }
 
 void init_db(sqlite3* db) noexcept
@@ -36,6 +37,14 @@ void init_db(sqlite3* db) noexcept
 sqlite3 *open_db(const std::string &email) noexcept
 {
   sqlite3* db;
+
+  try{
+    std::filesystem::create_directories(get_db_path(email).parent_path());
+  }
+  catch(const std::exception& e){
+    std::cerr << "Failed to create directory: " << e.what() << std::endl;
+    return nullptr;
+  }
 
   std::string db_path = get_db_path(email);
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <filesystem>
 #include "backend/mailbox.h"
 
 
@@ -24,6 +25,10 @@ public:
     void send_email(const Email_draft& email);
     void synchronize();
     std::vector<Folder> fetch_emails();
+
+    static std::filesystem::path get_home_path() noexcept;
+    static std::string get_config_path();
+
     Application();
 private:
     Mailbox get_current_mailbox();
