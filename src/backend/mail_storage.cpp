@@ -216,6 +216,8 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
         }
       }
 
+      std::reverse(emails.begin(), emails.end());
+
       folders.push_back(Folder{folder->getFullPath().toString("/", "utf-8"), emails});
 
       // Disconnect and close the folder and store
