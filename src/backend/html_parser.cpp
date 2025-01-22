@@ -109,7 +109,11 @@ std::string naiveWrapText(const std::string& input, size_t maxLength) {
 }
 
 std::string HtmlParser::extractText(const std::string& html) {
-    // Parse HTML content
+    // handle empty input
+    if (html.empty()) {
+        return "";
+    }
+
     htmlDocPtr doc = htmlReadMemory(html.c_str(), html.size(), nullptr, nullptr, HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
     if (doc == nullptr) {
         std::cerr << "Failed to parse HTML" << std::endl;
