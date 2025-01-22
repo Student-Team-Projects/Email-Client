@@ -207,6 +207,7 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
               subjectText.getWholeBuffer(),
               HtmlParser::extractText(contentString)
           });
+          emails.back().decodeQuotedPrintable();
         }
         catch (vmime::exception& e) {
           std::cerr << "Error processing email: " << e.what() << std::endl;
@@ -297,6 +298,7 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
       const char* recipient = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
 
       emails.push_back(Message{recipient, sender, subject, body});
+      emails.back().decodeQuotedPrintable();
     }
 
     sqlite3_finalize(stmt);
