@@ -18,7 +18,7 @@ void extractTextFromNode(xmlNode* node, std::string& text) {
     }
 }
 
-std::string decodeQuotedPrintable(const std::string& input) {
+std::string HtmlParser::decodeQuotedPrintable(const std::string& input) {
     std::ostringstream output;
     for (size_t i = 0; i < input.length(); ++i) {
         if (input[i] == '=' && i + 2 < input.length() && 
@@ -109,9 +109,15 @@ std::string naiveWrapText(const std::string& input, size_t maxLength) {
 }
 
 std::string HtmlParser::extractText(const std::string& html) {
-    // Parse HTML content
+    // handle empty input
+    if (html.empty()) {
+        return "";
+    }
+
     htmlDocPtr doc = htmlReadMemory(html.c_str(), html.size(), nullptr, nullptr, HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
     if (doc == nullptr) {
+        std::cerr << "Failed to parse HTML" << std::endl;
+        std::cerr << html << std::endl;
         throw std::runtime_error("Failed to parse HTML");
     }
 
