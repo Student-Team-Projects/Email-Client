@@ -55,7 +55,7 @@ namespace log_in{
                 std::cerr << "ADDED NEW ACCOUNT " << new_account_mail << " " << "with some password" << std::endl;
                 add_account({new_account_mail, new_account_password});
                 update_signed_in_accounts();
-            })
+            },ftxui::ButtonOption::Animated(ftxui::Color::DarkTurquoise))
         });
 
         visuals = ftxui::Container::Vertical({
@@ -108,9 +108,8 @@ namespace log_in{
             std::string label = account.first;
             signed_in_accounts->Add(
                 ftxui::Button(label, [&, account](){
-                    std::cerr<<"clicked"<<std::endl;
                     log_in_as(account.first);
-                })
+                },ftxui::ButtonOption::Animated(ftxui::Color::DarkOliveGreen2))
             );
         }
     }
