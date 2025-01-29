@@ -36,7 +36,7 @@ Folder_menu::Folder_menu(Application& app, Message& current_email, std::vector<F
                 for(auto b : buttons){
                     inbox->Add(b);
                 }
-            }) | ftxui::Maybe([&]{return page>0 && app.is_in_state(Application::State::MENU);}),
+            },ftxui::ButtonOption::Animated(ftxui::Color::DarkTurquoise)) | ftxui::Maybe([&]{return page>0 && app.is_in_state(Application::State::MENU);}),
             ftxui::Button("→", [&]{
                 page++;
                 inbox->DetachAllChildren();
@@ -46,15 +46,14 @@ Folder_menu::Folder_menu(Application& app, Message& current_email, std::vector<F
                     inbox->Add(b);
                 }
                 
-            }) | ftxui::Maybe([&]{return page_size*(page+1)<email_vector.size() && app.is_in_state(Application::State::MENU);}),
+            },ftxui::ButtonOption::Animated(ftxui::Color::Cyan3)) | ftxui::Maybe([&]{return page_size*(page+1)<email_vector.size() && app.is_in_state(Application::State::MENU);}),
             
         });
 
     inbox_layout = ftxui::Container::Vertical({
-            inbox, next_prev_buttons
-        }) | ftxui::vscroll_indicator | ftxui::frame 
-           | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 20)
-           | ftxui::border;
+            next_prev_buttons,inbox
+        }) | ftxui::vscroll_indicator | ftxui::frame |ftxui::xflex_grow; 
+           //| ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 20);
 }
 
 void Folder_menu::regenerate_menu(){
@@ -105,7 +104,7 @@ std::vector<ftxui::Component> Folder_menu::show_menu(std::vector<Folder>& folder
                 inbox->Add(b);
             }
             app.change_state(state);
-        }));
+        },ftxui::ButtonOption::Animated(ftxui::Color::Cyan)));
     }
     return buttons;
 }
@@ -126,12 +125,12 @@ std::vector<ftxui::Component> Folder_menu::show_folder(std::vector<Message>& mes
         std::wstring sender = add_elipsis(converter.from_bytes(message.sender), 20);
         std::wstring recipient = add_elipsis(converter.from_bytes(message.recipient), 20);
 
-        buttons.push_back(ftxui::Renderer([sender, recipient] { return ftxui::text(L"From: " + sender + L" To: " + recipient); }));
+        buttons.push_back(ftxui::Renderer([sender, recipient] { return ftxui::bgcolor(ftxui::Color::DarkSeaGreen4, ftxui::text(L"From: " + sender + L" To: " + recipient)); }));
         buttons.push_back(ftxui::Button(subject, [&messages, &current_message, state, i, this] {
             current_message = messages[i];
             app.change_state(state);
-            }));
-        buttons.push_back(ftxui::Renderer([] { return ftxui::separator(); }));
+            },ftxui::ButtonOption::Animated(ftxui::Color::DarkSeaGreen3)));
+        //buttons.push_back(ftxui::Renderer([] { return ftxui::separator(); }));
     }
     return buttons;
 }

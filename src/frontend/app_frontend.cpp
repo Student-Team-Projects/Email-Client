@@ -45,25 +45,25 @@ Application_frontend::Application_frontend(Application& app) :
         ftxui::SelectableText(
             &current_email.sender,
             mail_input_style("From:")
-        ),
+        ) | ftxui::notflex,
         ftxui::SelectableText(
             &current_email.recipient,
             mail_input_style("To:")
-        ),
+        ) | ftxui::notflex,
         ftxui::SelectableText(
             &current_email.subject,
             mail_input_style("Subject:")
-        ),
+        ) | ftxui::notflex,
         ftxui::SelectableText(
             &current_email.body,
             mail_input_style("Email")
-        )
+        ) | ftxui::yflex_shrink
     });
 
     auto new_mail_button = 
         ftxui::Button("New mail", [&]{
             app.change_state(Application::State::EMAIL_DRAFT);
-        });
+        },ftxui::ButtonOption::Animated(ftxui::Color::Cyan2));
 
     auto menu_component =
         ftxui::Container::Vertical({
@@ -74,12 +74,12 @@ Application_frontend::Application_frontend(Application& app) :
     auto back_button = 
         ftxui::Button("Back", [&]{
             app.change_state(Application::State::MENU);
-        });
+        },ftxui::ButtonOption::Animated(ftxui::Color::DarkOliveGreen2));
 
     auto email_layout_wrapper = 
         ftxui::Container::Vertical({
-            back_button,
-            email_layout,
+            back_button | ftxui::notflex,
+            email_layout | ftxui::flex,
             //respond??
         });
 
@@ -98,8 +98,8 @@ Application_frontend::Application_frontend(Application& app) :
     });
     
     layout = ftxui::Container::Horizontal({
-        menu_component | ftxui::Maybe([&]{return !app.is_in_state(Application::State::LOG_IN);}) | ftxui::flex_shrink,
-        main_component | ftxui::flex_shrink
+        menu_component | ftxui::Maybe([&]{return !app.is_in_state(Application::State::LOG_IN);}) | ftxui::notflex | ftxui::bgcolor(ftxui::Color::CadetBlueBis),
+        main_component | ftxui::flex | ftxui::bgcolor(ftxui::Color::PaleTurquoise4)
     });
 }
 

@@ -34,7 +34,7 @@ Email_draft_layout::Email_draft_layout(Application& _app)
 ftxui::Component Email_draft_layout::get_email_draft_component(){
     auto back_button = ftxui::Button("Back", [&]{
         app.change_state(Application::State::MENU);
-    });
+    },ftxui::ButtonOption::Animated(ftxui::Color::DarkOliveGreen2));
     
     auto email_draft_layout = ftxui::Container::Vertical({
         ftxui::SelectableInput(
@@ -59,10 +59,10 @@ ftxui::Component Email_draft_layout::get_email_draft_component(){
         ftxui::Button("Send Email", [&]{
             app.send_email(current_email_draft);
             current_email_draft = Email_draft();
-        }),
+        },ftxui::ButtonOption::Animated(ftxui::Color::DarkTurquoise)),
         ftxui::Button("Reset", [&]{
             current_email_draft = Email_draft();
-        }) 
+        },ftxui::ButtonOption::Animated(ftxui::Color::Cyan3) ) 
     });
 
     auto email_draft_wrapper = ftxui::Container::Vertical({
