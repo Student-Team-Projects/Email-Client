@@ -8,6 +8,8 @@
 #include <sstream>
 #include <regex>
 
+#include "mail_types.h"
+
 void extract_text_from_node(xmlNode* node, std::string& text) {
     for (xmlNode* current = node; current != nullptr; current = current->next) {
         if (current->type == XML_TEXT_NODE) {
@@ -32,6 +34,14 @@ std::string HtmlParser::decode_quoted_printable(const std::string& input) {
         }
     }
     return output.str();
+}
+
+void HtmlParser::decode_quoted_printable(MessageHeader &header)
+{
+    header.recipient = HtmlParser::decode_quoted_printable(header.recipient);
+    header.sender = HtmlParser::decode_quoted_printable(header.sender);
+    header.subject = HtmlParser::decode_quoted_printable(header.subject);
+    // body = HtmlParser::decode_quoted_printable(body);
 }
 
 std::string remove_leftovers(const std::string& input) {

@@ -22,7 +22,8 @@ public:
     std::string get_current_email_address();
     void send_email(const MessageToSend& email);
     void synchronize();
-    std::vector<Folder> fetch_emails();
+    std::vector<Folder> fetch_email_headers();
+    std::string get_email_body(const std::string& uid, const std::string& folder_path);
 
     static std::filesystem::path get_home_path() noexcept;
     static std::string get_config_path();

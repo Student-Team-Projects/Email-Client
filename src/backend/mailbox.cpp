@@ -63,7 +63,7 @@ std::vector<Folder> Mailbox::get_email_headers() noexcept
   return MailStorage::get_email_headers(email);
 }
 
-std::string Mailbox::get_email_body(const std::string &uid) noexcept
+std::string Mailbox::get_email_body(const std::string &uid, const std::string& folder_path) noexcept
 {
-  return MailStorage::get_email_body(uid);
+  return MailStorage::get_email_body(uid, folder_path, email, password);
 }

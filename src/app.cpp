@@ -77,11 +77,17 @@ void Application::synchronize()
     mailbox.synchronize();
 }
 
-std::vector<Folder> Application::fetch_emails(){
+std::vector<Folder> Application::fetch_email_headers(){
     Mailbox mailbox = get_current_mailbox();
     std::vector<Folder> emails = mailbox.get_email_headers();
     std::cerr << "emails retrieved"<< std::endl;
     return emails;
+}
+
+std::string Application::get_email_body(const std::string &uid, const std::string &folder_path)
+{
+    Mailbox mailbox = get_current_mailbox();
+    return mailbox.get_email_body(uid, folder_path);
 }
 
 std::filesystem::path Application::get_home_path() noexcept

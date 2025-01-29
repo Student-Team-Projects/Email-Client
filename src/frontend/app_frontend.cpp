@@ -89,7 +89,7 @@ Application_frontend::Application_frontend(Application& app) :
         email_layout_wrapper | ftxui::Maybe([&]{return app.is_in_state(Application::State::EMAIL_VIEW);}),
         log_in.visuals | ftxui::Maybe([&]{return app.is_in_state(Application::State::LOG_IN);}),
     }), [&](ftxui::Event event){
-        // If downloading emails finished, update the view
+        // When downloading emails finished, update the view
         if (event.input() == "refresh_emails") {
             refresh_emails();
         }
@@ -135,6 +135,6 @@ void Application_frontend::synchronize()
 
 void Application_frontend::refresh_emails()
 {
-    folder_vector = app.fetch_emails();
+    folder_vector = app.fetch_email_headers();
     folder_menu.regenerate_menu();
 }

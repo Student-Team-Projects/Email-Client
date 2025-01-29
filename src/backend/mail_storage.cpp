@@ -116,28 +116,34 @@ bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
   return true;
 }
 
+std::shared_ptr<vmime::net::store> get_store(const std::string &email, const std::string &password)
+{
+  vmime::utility::url url("imaps://imap.gmail.com:993");
+  vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
+
+  vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
+  verifier->loadRootCertificates("/etc/ssl/cert.pem");
+
+  vmime::shared_ptr<vmime::net::store> store = session->getStore(url);
+  store->setCertificateVerifier(verifier);
+
+  store->setProperty("options.need-authentication", true);
+  store->setProperty("auth.username", email);
+  store->setProperty("auth.password", password);
+
+  return store;
+}
+
 std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, const std::string &password) noexcept
 {
   std::vector<Folder> folders;
 
   try {
-    vmime::utility::url url("imaps://imap.gmail.com:993");
-    vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
-
-    vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
-    verifier->loadRootCertificates("/etc/ssl/cert.pem");
-
-    vmime::shared_ptr<vmime::net::store> store = session->getStore(url);
-    store->setCertificateVerifier(verifier);
-
-    store->setProperty("options.need-authentication", true);
-    store->setProperty("auth.username", email);
-    store->setProperty("auth.password", password);
+    vmime::shared_ptr<vmime::net::store> store = get_store(email, password);
 
     // Connect to the IMAP server
     store->connect();
 
-    // Loading messages is SO slow
     std::size_t count = 0;
     
     auto root_folder = store->getRootFolder();
@@ -185,28 +191,13 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
           vmime::text toText;
           vmime::text::decodeAndUnfold(to, &toText);
 
-          // Extract Content
-          // vmime::string contentString;
-          // vmime::utility::outputStreamStringAdapter contentStream(contentString);
-          // content->extract(contentStream);
-
-          // vmime::utility::inputStreamStringAdapter inStr(contentString);
-          // auto decoder = vmime::utility::encoder::encoderFactory::getInstance()->create("base64");
-          // vmime::string outString;
-          // vmime::utility::outputStreamStringAdapter outStr(outString);
-          // decoder->decode(inStr, outStr);
-
-          // vmime::text contentText;
-          // vmime::text::decodeAndUnfold(outString, &contentText);
-
           emails.push_back(MessageHeader {
               toText.getWholeBuffer(),
               senderText.getWholeBuffer(),
               subjectText.getWholeBuffer(),
-              //HtmlParser::extract_text(contentString)
               message->getUID()
           });
-          emails.back().decode_quoted_printable();
+          HtmlParser::decode_quoted_printable(emails.back());
         }
         catch (vmime::exception& e) {
           std::cerr << "Error processing email: " << e.what() << std::endl;
@@ -296,7 +287,6 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
       const char* recipient = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
 
       emails.push_back(MessageHeader{recipient, sender, subject, uid});
-      emails.back().decode_quoted_printable();
     }
 
     sqlite3_finalize(stmt);
@@ -315,7 +305,61 @@ std::vector<Folder> MailStorage::get_email_headers(const std::string &email) noe
   return load_emails(email);
 }
 
-std::string MailStorage::get_email_body(const std::string &uid) noexcept
+std::string MailStorage::get_email_body(const std::string& uid, const std::string& folder_path, 
+                            const std::string& email, const std::string& password) noexcept
 {
-  return std::string();
+  try{
+    std::shared_ptr<vmime::net::store> store = get_store(email, password);
+
+    // Connect to the IMAP server
+    store->connect();
+
+    auto path = vmime::utility::path::fromString(folder_path, "/", "utf-8");
+    auto folder = store->getFolder(path);
+
+    folder->open(vmime::net::folder::MODE_READ_ONLY);
+
+    auto messages = folder->getMessages(vmime::net::messageSet::byUID(uid, uid));
+
+    folder->fetchMessages(messages, vmime::net::fetchAttributes::UID);
+
+    if (messages.empty()) {
+      folder->close(false);
+      store->disconnect();
+      return "";
+    }
+
+    auto message = messages.front();
+
+    std::string body = "";
+
+    vmime::messageParser mp(message->getParsedMessage());
+
+		// Enumerate text parts
+		for (size_t i = 0 ; i < mp.getTextPartCount() ; ++i) {
+
+			const vmime::textPart& part = *mp.getTextPartAt(i);
+    
+      if (part.getType().getSubType() == vmime::mediaTypes::TEXT_PLAIN) {
+        const vmime::textPart& tp = dynamic_cast<const vmime::textPart&>(part);
+        vmime::utility::outputStreamStringAdapter textStream(body);
+				tp.getText()->extract(textStream);
+
+        break;
+      }
+    }
+
+    folder->close(false);
+    store->disconnect();
+
+    return body;
+  }
+  catch (vmime::exception& e) {
+    std::cerr << "Error retrieving email body: " << e.what() << std::endl;
+    return "";
+  }
+  catch (std::exception& e) {
+    std::cerr << "General error: " << e.what() << std::endl;
+    return "";
+  }
 }

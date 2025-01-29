@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vmime/vmime.hpp>
 #include <fstream>
 

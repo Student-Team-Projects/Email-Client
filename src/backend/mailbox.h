@@ -11,7 +11,7 @@ public:
   void send(const MessageToSend& message) noexcept;
   void synchronize() noexcept;
   std::vector<Folder> get_email_headers() noexcept;
-  std::string get_email_body(const std::string& uid) noexcept;
+  std::string get_email_body(const std::string& uid, const std::string& folder_path) noexcept;
 private:
   std::string email;
   std::string password;
