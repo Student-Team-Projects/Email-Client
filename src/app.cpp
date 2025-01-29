@@ -38,9 +38,9 @@ void Application::change_state(State new_state){
     current_state = new_state;
 }
 
-void Application::send_email(const Email_draft& email){
+void Application::send_email(const MessageToSend& email){
     std::cerr << "sending email..." << std::endl;
-    if(email.recipient.empty() || email.subject.empty() || email.message.empty()){
+    if(email.recipient.empty() || email.subject.empty() || email.body.empty()){
         return;
     }
 
@@ -67,8 +67,7 @@ void Application::send_email(const Email_draft& email){
     appPassword = (std::string)(*user)["app_password"];
 
     Mailbox mailbox(senderEmail, appPassword);
-    Message message(senderEmail, email.recipient, email.subject, email.message);
-    mailbox.send(message);
+    mailbox.send(email);
     std::cerr << "email sent"<< std::endl;
 }
 
@@ -80,7 +79,7 @@ void Application::synchronize()
 
 std::vector<Folder> Application::fetch_emails(){
     Mailbox mailbox = get_current_mailbox();
-    std::vector<Folder> emails = mailbox.get_emails();
+    std::vector<Folder> emails = mailbox.get_email_headers();
     std::cerr << "emails retrieved"<< std::endl;
     return emails;
 }

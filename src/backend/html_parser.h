@@ -6,9 +6,9 @@
 class HtmlParser {
 public:
     // Function to extract text from HTML content
-    static std::string extractText(const std::string& html);
+    static std::string extract_text(const std::string& html);
 
-    static std::string decodeQuotedPrintable(const std::string& input);
+    static std::string decode_quoted_printable(const std::string& input);
 };
 
 #endif // HTML_PARSER_H

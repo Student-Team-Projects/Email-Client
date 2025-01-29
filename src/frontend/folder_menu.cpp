@@ -16,7 +16,7 @@ namespace{
     }
 }
 
-Folder_menu::Folder_menu(Application& app, Message& current_email, std::vector<Folder>& folder_vector, Folder& current_folder)
+Folder_menu::Folder_menu(Application& app, MessageHeader& current_email, std::vector<Folder>& folder_vector, Folder& current_folder)
 : app(app), current_email(current_email), folder_vector(folder_vector), current_folder(current_folder){
     menu = ftxui::Container::Vertical({
         show_menu(folder_vector, current_folder, Application::State::MENU, current_email, email_vector, inbox, page)
@@ -74,7 +74,7 @@ ftxui::Component Folder_menu::get_inbox_layout(){
 }
 
 std::vector<ftxui::Component> Folder_menu::show_menu(std::vector<Folder>& folders,
-    Folder& current_folder, Application::State state,Message& current_message,std::vector<Message>& email_vector,ftxui::Component& inbox,int& page) {
+    Folder& current_folder, Application::State state,MessageHeader& current_message,std::vector<MessageHeader>& email_vector,ftxui::Component& inbox,int& page) {
     std::vector<ftxui::Component> buttons;
     if(folders.size()==0){
         return {ftxui::Renderer([] {
@@ -110,14 +110,14 @@ std::vector<ftxui::Component> Folder_menu::show_menu(std::vector<Folder>& folder
     return buttons;
 }
 
-std::vector<ftxui::Component> Folder_menu::show_folder(std::vector<Message>& messages,
-    Message& current_message, Application::State state, std::size_t start_index, std::size_t count) {
+std::vector<ftxui::Component> Folder_menu::show_folder(std::vector<MessageHeader>& messages,
+    MessageHeader& current_message, Application::State state, std::size_t start_index, std::size_t count) {
     std::vector<ftxui::Component> buttons;
     for (size_t i = start_index; i < std::min(start_index + page_size,messages.size()); ++i) {
         // Be carefull what you pass as a reference -- state would be a dangling reference
 
         //change in case of many recipients!!
-        Message& message=messages[i];
+        MessageHeader& message=messages[i];
 
         // delete when supporting wstrings everywhere
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;

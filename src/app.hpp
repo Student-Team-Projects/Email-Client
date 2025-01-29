@@ -6,8 +6,6 @@
 
 
 class Application_frontend;
-class Email_draft;
-
 
 class Application {
 public:
@@ -22,7 +20,7 @@ public:
     void change_state(State new_state);
     void set_current_email_address(std::string new_address);
     std::string get_current_email_address();
-    void send_email(const Email_draft& email);
+    void send_email(const MessageToSend& email);
     void synchronize();
     std::vector<Folder> fetch_emails();
 

@@ -1,5 +1,5 @@
 #include "ftxui/component/component.hpp"
-#include "email_types.hpp"
+#include "backend/mail_types.h"
 class Application;
 
 class Email_draft_layout{
@@ -8,5 +8,5 @@ public:
     ftxui::Component get_email_draft_component();
 private:
     Application& app;
-    Email_draft current_email_draft;
+    MessageToSend current_email_draft;
 };

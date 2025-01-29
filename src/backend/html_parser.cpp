@@ -8,17 +8,17 @@
 #include <sstream>
 #include <regex>
 
-void extractTextFromNode(xmlNode* node, std::string& text) {
+void extract_text_from_node(xmlNode* node, std::string& text) {
     for (xmlNode* current = node; current != nullptr; current = current->next) {
         if (current->type == XML_TEXT_NODE) {
             text += reinterpret_cast<const char*>(current->content);
             text += " "; // Add space between text nodes
         }
-        extractTextFromNode(current->children, text);
+        extract_text_from_node(current->children, text);
     }
 }
 
-std::string HtmlParser::decodeQuotedPrintable(const std::string& input) {
+std::string HtmlParser::decode_quoted_printable(const std::string& input) {
     std::ostringstream output;
     for (size_t i = 0; i < input.length(); ++i) {
         if (input[i] == '=' && i + 2 < input.length() && 
@@ -34,7 +34,7 @@ std::string HtmlParser::decodeQuotedPrintable(const std::string& input) {
     return output.str();
 }
 
-std::string removeLeftovers(const std::string& input) {
+std::string remove_leftovers(const std::string& input) {
     std::string result = input;
 
     // Remove @media (...) { ... } sections
@@ -46,7 +46,7 @@ std::string removeLeftovers(const std::string& input) {
     return result;
 }
 
-std::string cleanWhitespace(const std::string& input) {
+std::string clean_whitespace(const std::string& input) {
     std::regex whitespaceBlockPattern(R"(\s+)");
     std::string result;
 
@@ -74,7 +74,7 @@ std::string cleanWhitespace(const std::string& input) {
     return result;
 }
 
-std::string cleanEqualSigns(const std::string& input) {
+std::string clean_equal_signs(const std::string& input) {
     // Remove '=XX' where XX is a hexadecimal value
     std::regex eqPattern(R"(=([0-9A-Fa-f]{2}))");
     std::string cleaned = std::regex_replace(input, eqPattern, "");
@@ -85,7 +85,7 @@ std::string cleanEqualSigns(const std::string& input) {
     return cleaned;
 }
 
-std::string naiveWrapText(const std::string& input, size_t maxLength) {
+std::string naive_wrap_text(const std::string& input, size_t maxLength) {
     std::stringstream result;
     size_t currentLineLength = 0;
 
@@ -108,7 +108,7 @@ std::string naiveWrapText(const std::string& input, size_t maxLength) {
     return result.str();
 }
 
-std::string HtmlParser::extractText(const std::string& html) {
+std::string HtmlParser::extract_text(const std::string& html) {
     // handle empty input
     if (html.empty()) {
         return "";
@@ -124,25 +124,25 @@ std::string HtmlParser::extractText(const std::string& html) {
     // Extract text
     std::string plainText;
     xmlNode* root = xmlDocGetRootElement(doc);
-    extractTextFromNode(root, plainText);
+    extract_text_from_node(root, plainText);
 
     // Free document
     xmlFreeDoc(doc);
 
     // Decode Quoted-Printable
-    plainText = decodeQuotedPrintable(plainText);
+    plainText = decode_quoted_printable(plainText);
 
     // Remove leftovers
-    plainText = removeLeftovers(plainText);
+    plainText = remove_leftovers(plainText);
 
     // Clean whitespace
-    plainText = cleanWhitespace(plainText);
+    plainText = clean_whitespace(plainText);
 
     // Clean equal signs
-    plainText = cleanEqualSigns(plainText);
+    plainText = clean_equal_signs(plainText);
 
     // Temporary: Naive text wrapping
-    plainText = naiveWrapText(plainText, 80);
+    plainText = naive_wrap_text(plainText, 80);
 
     return plainText;
 }
