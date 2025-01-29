@@ -272,7 +272,7 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
     std::vector<MessageHeader> emails;
 
     sqlite3_stmt* stmt;
-    const char* sql = "SELECT Sender, Subject, UID, Recipient FROM MailHeaders WHERE Folder = ?;";
+    const char* sql = "SELECT Sender, Subject, UID, Recipient, Folder FROM MailHeaders WHERE Folder = ?;";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
       continue;
@@ -285,8 +285,9 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
       const char* subject = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
       const char* uid = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
       const char* recipient = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+      const char* folder = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
 
-      emails.push_back(MessageHeader{recipient, sender, subject, uid});
+      emails.push_back(MessageHeader{recipient, sender, subject, uid, folder});
     }
 
     sqlite3_finalize(stmt);

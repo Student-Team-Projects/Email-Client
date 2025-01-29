@@ -19,7 +19,7 @@ private:
     Application& app;
     log_in::Log_in_data log_in;
     std::vector<Folder> folder_vector;
-    MessageHeader current_email;
+    DisplayMessage current_email;
     Folder current_folder;
     Email_draft_layout email_draft_layout;
     ftxui::Component email_layout;

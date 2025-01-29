@@ -10,6 +10,13 @@ struct MessageHeader {
   std::string sender;
   std::string subject;
   std::string uid;
+  std::string folder;
+};
+
+struct DisplayMessage {
+  std::string recipient;
+  std::string sender;
+  std::string subject;
   std::string body;
 };
 
