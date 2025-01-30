@@ -25,8 +25,9 @@ void Mailbox::send(const MessageToSend &message) noexcept
     vmime::messageBuilder mb;
     mb.setExpeditor(vmime::mailbox(email));
     mb.setRecipients(to);
-    mb.setSubject(vmime::text(message.subject));
+    mb.setSubject(vmime::text(message.subject, "utf-8"));
     mb.getTextPart()->setText(vmime::make_shared<vmime::stringContentHandler>(message.body));
+    mb.getTextPart()->setCharset(vmime::charset("utf-8"));
 
     vmime::utility::url url("smtps://smtp.gmail.com:465");
     vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
