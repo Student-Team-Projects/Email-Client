@@ -17,8 +17,12 @@ namespace{
     }
 }
 
-Folder_menu::Folder_menu(Application& app, DisplayMessage& current_email, std::vector<Folder>& folder_vector, Folder& current_folder)
-: app(app), current_email(current_email), folder_vector(folder_vector), current_folder(current_folder){
+Folder_menu::Folder_menu(Application& app, DisplayMessage& current_email, 
+        std::vector<Folder>& folder_vector, Folder& current_folder, 
+        std::function<void(bool)> set_email_body_dim)
+: app(app), current_email(current_email), folder_vector(folder_vector), 
+    current_folder(current_folder), set_email_body_dim(set_email_body_dim){
+        
     menu = ftxui::Container::Vertical({
         show_menu(folder_vector, current_folder, Application::State::MENU, current_email, email_vector, inbox, page)
     });
@@ -122,9 +126,9 @@ std::vector<ftxui::Component> Folder_menu::show_folder(std::vector<MessageHeader
         // delete when supporting wstrings everywhere
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 
-        std::wstring subject = add_elipsis(L"Subject: " + converter.from_bytes(message.subject), 50);
-        std::wstring sender = add_elipsis(converter.from_bytes(message.sender), 20);
-        std::wstring recipient = add_elipsis(converter.from_bytes(message.recipient), 20);
+        std::wstring subject = add_elipsis(L"Subject: " + converter.from_bytes(message.subject), 100);
+        std::wstring sender = add_elipsis(converter.from_bytes(message.sender), 40);
+        std::wstring recipient = add_elipsis(converter.from_bytes(message.recipient), 40);
 
         buttons.push_back(ftxui::Renderer([sender, recipient] { return ftxui::bgcolor(ftxui::Color::DarkSeaGreen4, ftxui::text(L"From: " + sender + L" To: " + recipient)); }));
         buttons.push_back(ftxui::Button(subject, [message, &current_message, state, this] {
@@ -133,12 +137,15 @@ std::vector<ftxui::Component> Folder_menu::show_folder(std::vector<MessageHeader
             current_message.subject = message.subject;
             current_message.body = "Loading...";
 
+            set_email_body_dim(true);
+
             std::thread([this, message, &current_message]{
                 std::string body = app.get_email_body(message.uid, message.folder);
                 if (current_message.subject == message.subject && 
                     current_message.sender == message.sender && 
                     current_message.recipient == message.recipient) {
                     current_message.body = body;
+                    set_email_body_dim(false);
                 }
             }).detach();
 

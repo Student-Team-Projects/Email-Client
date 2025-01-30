@@ -6,6 +6,7 @@
 #include <codecvt>
 #include <locale>
 #include <string>
+#include "app_frontend.hpp"
 
 ftxui::InputOption mail_input_style(const std::string& placeholder) {
     ftxui::InputOption option;
@@ -37,8 +38,14 @@ Application_frontend::Application_frontend(Application& app) :
     current_folder(),
     screen(ftxui::ScreenInteractive::Fullscreen()),
     email_draft_layout(app),
-    folder_menu(app, current_email, folder_vector, current_folder)
+    folder_menu(app, current_email, folder_vector, current_folder, [this](bool value){set_email_body_dim(value);})
 {   
+
+    // stored in a separate component to be able to dynamically add ftxui::dim
+    email_layout_body = ftxui::SelectableText(
+        &current_email.body,
+        mail_input_style("Email")
+    ) | ftxui::yflex_shrink;
 
     //once
     email_layout = ftxui::Container::Vertical({
@@ -54,10 +61,7 @@ Application_frontend::Application_frontend(Application& app) :
             &current_email.subject,
             mail_input_style("Subject:")
         ) | ftxui::notflex,
-        ftxui::SelectableText(
-            &current_email.body,
-            mail_input_style("Email")
-        ) | ftxui::yflex_shrink
+        email_layout_body
     });
 
     auto new_mail_button = 
@@ -137,4 +141,19 @@ void Application_frontend::refresh_emails()
 {
     folder_vector = app.fetch_email_headers();
     folder_menu.regenerate_menu();
+}
+
+void Application_frontend::set_email_body_dim(bool value)
+{
+    email_layout_body->Detach();
+    email_layout_body = ftxui::SelectableText(
+        &current_email.body,
+        mail_input_style("Email")
+    ) | ftxui::yflex_shrink;
+
+    if (value) {
+        email_layout_body |= ftxui::dim;
+    }
+
+    email_layout->Add(email_layout_body);
 }

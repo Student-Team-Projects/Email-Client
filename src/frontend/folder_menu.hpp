@@ -5,7 +5,8 @@
 
 class Folder_menu{
 public:
-    Folder_menu(Application& app, DisplayMessage& current_email, std::vector<Folder>& folder_vector, Folder& current_folder);
+    Folder_menu(Application& app, DisplayMessage& current_email, std::vector<Folder>& folder_vector, 
+        Folder& current_folder, std::function<void(bool)> set_email_body_dim);
     void regenerate_menu();
     ftxui::Component get_menu_layout();
     ftxui::Component get_inbox_layout();
@@ -15,6 +16,7 @@ private:
     Folder& current_folder;
     DisplayMessage& current_email;
     std::vector<MessageHeader> email_vector;
+    std::function<void(bool)> set_email_body_dim;
     
     int page{0};
     ftxui::Component menu;

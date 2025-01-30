@@ -16,6 +16,8 @@ public:
     void synchronize();
     void refresh_emails();
 private:
+    void set_email_body_dim(bool value);
+
     Application& app;
     log_in::Log_in_data log_in;
     std::vector<Folder> folder_vector;
@@ -23,6 +25,7 @@ private:
     Folder current_folder;
     Email_draft_layout email_draft_layout;
     ftxui::Component email_layout;
+    ftxui::Component email_layout_body;
     ftxui::Component layout;
     ftxui::ScreenInteractive screen;
     Folder_menu folder_menu;
