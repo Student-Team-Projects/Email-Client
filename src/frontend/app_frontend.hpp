@@ -4,7 +4,6 @@
 #include "backend/mailbox.h"
 #include "frontend/log_in.hpp"
 #include "app.hpp"
-#include "email_types.hpp"
 #include "email_draft_layout.hpp"
 #include "folder_menu.hpp"
 
@@ -17,13 +16,16 @@ public:
     void synchronize();
     void refresh_emails();
 private:
+    void set_email_body_dim(bool value);
+
     Application& app;
     log_in::Log_in_data log_in;
     std::vector<Folder> folder_vector;
-    Message current_email;
+    DisplayMessage current_email;
     Folder current_folder;
     Email_draft_layout email_draft_layout;
     ftxui::Component email_layout;
+    ftxui::Component email_layout_body;
     ftxui::Component layout;
     ftxui::ScreenInteractive screen;
     Folder_menu folder_menu;

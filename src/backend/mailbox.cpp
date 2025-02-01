@@ -16,7 +16,7 @@ Mailbox::Mailbox(const std::string &email, const std::string &password)
   : email(email), password(password)
 {}
 
-void Mailbox::send(const Message &message) noexcept
+void Mailbox::send(const MessageToSend &message) noexcept
 {
   try {
     vmime::addressList to;
@@ -25,8 +25,9 @@ void Mailbox::send(const Message &message) noexcept
     vmime::messageBuilder mb;
     mb.setExpeditor(vmime::mailbox(email));
     mb.setRecipients(to);
-    mb.setSubject(vmime::text(message.subject));
+    mb.setSubject(vmime::text(message.subject, "utf-8"));
     mb.getTextPart()->setText(vmime::make_shared<vmime::stringContentHandler>(message.body));
+    mb.getTextPart()->setCharset(vmime::charset("utf-8"));
 
     vmime::utility::url url("smtps://smtp.gmail.com:465");
     vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
@@ -58,7 +59,12 @@ void Mailbox::synchronize() noexcept
   MailStorage::synchronize(email, password);
 }
 
-std::vector<Folder> Mailbox::get_emails() noexcept
+std::vector<Folder> Mailbox::get_email_headers() noexcept
 {
-  return MailStorage::get_emails(email);
+  return MailStorage::get_email_headers(email);
+}
+
+std::string Mailbox::get_email_body(const std::string &uid, const std::string& folder_path) noexcept
+{
+  return MailStorage::get_email_body(uid, folder_path, email, password);
 }

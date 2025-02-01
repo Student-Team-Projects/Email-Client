@@ -19,12 +19,12 @@ std::filesystem::path get_db_path(const std::string &email) noexcept
 void init_db(sqlite3* db) noexcept
 {
   char* err_msg = nullptr;
-  const char* sql = "CREATE TABLE Mails ("
+  const char* sql = "CREATE TABLE MailHeaders ("
                     "ID INTEGER PRIMARY KEY,"
                     "Sender TEXT NOT NULL,"
                     "Subject TEXT NOT NULL,"
-                    "Body TEXT NOT NULL,"
                     "Recipient TEXT,"
+                    "UID TEXT NOT NULL,"
                     "Folder TEXT NOT NULL);";
 
   int rc = sqlite3_exec(db, sql, nullptr, nullptr, &err_msg);
@@ -68,7 +68,7 @@ std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
   sqlite3* db = open_db(email);
 
   sqlite3_stmt* stmt;
-  const char* sql = "SELECT COUNT(*) FROM Mails;";
+  const char* sql = "SELECT COUNT(*) FROM MailHeaders;";
   int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
@@ -91,9 +91,9 @@ std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
 
 bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
   for (Folder& folder : emails) {
-    const char* mail_sql = "INSERT INTO Mails (Sender, Subject, Body, Folder, Recipient) VALUES (?, ?, ?, ?, ?);";
+    const char* mail_sql = "INSERT INTO MailHeaders (Sender, Subject, Folder, UID, Recipient) VALUES (?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt;
-    for (Message& message : folder.messages) {
+    for (MessageHeader& message : folder.messages) {
       if (sqlite3_prepare_v2(db, mail_sql, -1, &stmt, nullptr) != SQLITE_OK) {
         std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
         return false;
@@ -101,8 +101,8 @@ bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
 
       sqlite3_bind_text(stmt, 1, message.sender.c_str(), -1, SQLITE_STATIC);
       sqlite3_bind_text(stmt, 2, message.subject.c_str(), -1, SQLITE_STATIC);
-      sqlite3_bind_text(stmt, 3, message.body.c_str(), -1, SQLITE_STATIC);
-      sqlite3_bind_text(stmt, 4, folder.name.c_str(), -1, SQLITE_STATIC);
+      sqlite3_bind_text(stmt, 3, folder.name.c_str(), -1, SQLITE_STATIC);
+      sqlite3_bind_text(stmt, 4, message.uid.c_str(), -1, SQLITE_STATIC);
       sqlite3_bind_text(stmt, 5, message.recipient.c_str(), -1, SQLITE_STATIC);
 
       if (sqlite3_step(stmt) != SQLITE_DONE) {
@@ -116,28 +116,34 @@ bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
   return true;
 }
 
+std::shared_ptr<vmime::net::store> get_store(const std::string &email, const std::string &password)
+{
+  vmime::utility::url url("imaps://imap.gmail.com:993");
+  vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
+
+  vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
+  verifier->loadRootCertificates("/etc/ssl/cert.pem");
+
+  vmime::shared_ptr<vmime::net::store> store = session->getStore(url);
+  store->setCertificateVerifier(verifier);
+
+  store->setProperty("options.need-authentication", true);
+  store->setProperty("auth.username", email);
+  store->setProperty("auth.password", password);
+
+  return store;
+}
+
 std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, const std::string &password) noexcept
 {
   std::vector<Folder> folders;
 
   try {
-    vmime::utility::url url("imaps://imap.gmail.com:993");
-    vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
-
-    vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
-    verifier->loadRootCertificates("/etc/ssl/cert.pem");
-
-    vmime::shared_ptr<vmime::net::store> store = session->getStore(url);
-    store->setCertificateVerifier(verifier);
-
-    store->setProperty("options.need-authentication", true);
-    store->setProperty("auth.username", email);
-    store->setProperty("auth.password", password);
+    vmime::shared_ptr<vmime::net::store> store = get_store(email, password);
 
     // Connect to the IMAP server
     store->connect();
 
-    // Loading messages is SO slow
     std::size_t count = 0;
     
     auto root_folder = store->getRootFolder();
@@ -148,29 +154,27 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
         continue;
       }
       
-      std::vector<Message> emails;
+      std::vector<MessageHeader> emails;
 
       // Open the folder
       folder->open(vmime::net::folder::MODE_READ_ONLY);
 
-      // Limit the number of messages to 10, change to (1, -1) for all messages
       int messageCount = folder->getMessageCount();
       if (messageCount == 0) {
         folder->close(false);
         continue;
       }
-      int start = std::max(1, messageCount - 30 + 1);
-      auto messages = folder->getMessages(vmime::net::messageSet::byNumber(start, messageCount));
+      auto messages = folder->getMessages(vmime::net::messageSet::byNumber(1, -1));
 
-      folder->fetchMessages(messages, vmime::net::fetchAttributes::FLAGS | vmime::net::fetchAttributes::ENVELOPE);
+      folder->fetchMessages(messages, vmime::net::fetchAttributes::ENVELOPE | vmime::net::fetchAttributes::UID);
       vmime::utility::outputStreamAdapter os(std::cout);
 
-    int counter = 0;
-    for (const auto& message : messages) {
-      try{
-        // Extract header and body content
-        auto header = message->getHeader();
-        auto content = message->getParsedMessage()->getBody()->getContents();
+      int counter = 0;
+      for (const auto& message : messages) {
+        try{
+          // Extract header and body content
+          auto header = message->getHeader();
+          // auto content = message->getParsedMessage()->getBody()->getContents();
 
           // Extract Subject
           auto subject = header->Subject()->getValue()->generate();
@@ -187,27 +191,13 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
           vmime::text toText;
           vmime::text::decodeAndUnfold(to, &toText);
 
-          // Extract Content
-          vmime::string contentString;
-          vmime::utility::outputStreamStringAdapter contentStream(contentString);
-          content->extract(contentStream);
-
-          vmime::utility::inputStreamStringAdapter inStr(contentString);
-          auto decoder = vmime::utility::encoder::encoderFactory::getInstance()->create("base64");
-          vmime::string outString;
-          vmime::utility::outputStreamStringAdapter outStr(outString);
-          decoder->decode(inStr, outStr);
-
-          vmime::text contentText;
-          vmime::text::decodeAndUnfold(outString, &contentText);
-
-          emails.push_back(Message {
+          emails.push_back(MessageHeader {
               toText.getWholeBuffer(),
               senderText.getWholeBuffer(),
               subjectText.getWholeBuffer(),
-              HtmlParser::extractText(contentString)
+              message->getUID()
           });
-          emails.back().decodeQuotedPrintable();
+          HtmlParser::decode_quoted_printable(emails.back());
         }
         catch (vmime::exception& e) {
           std::cerr << "Error processing email: " << e.what() << std::endl;
@@ -240,12 +230,12 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
 
 bool MailStorage::synchronize(const std::string &email, const std::string &password) noexcept
 {
-  // Fetch emails before deleting (this takes time)
+  // Fetch emails before deleting
   auto [emails, status] = fetch_emails(email, password);
 
   sqlite3* db = open_db(email);
 
-  const char* sql = "DELETE FROM Mails;";
+  const char* sql = "DELETE FROM MailHeaders;";
   char* err_msg = nullptr;
   int rc = sqlite3_exec(db, sql, nullptr, nullptr, &err_msg);
   if (rc != SQLITE_OK) {
@@ -271,7 +261,7 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
 
   // Query to get all unique folders
   sqlite3_stmt* folder_stmt;
-  const char* folder_sql = "SELECT DISTINCT Folder FROM Mails;";
+  const char* folder_sql = "SELECT DISTINCT Folder FROM MailHeaders;";
   if (sqlite3_prepare_v2(db, folder_sql, -1, &folder_stmt, nullptr) != SQLITE_OK) {
     std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
     return folders;
@@ -279,10 +269,10 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
 
   while (sqlite3_step(folder_stmt) == SQLITE_ROW) {
     const char* folder_name = reinterpret_cast<const char*>(sqlite3_column_text(folder_stmt, 0));
-    std::vector<Message> emails;
+    std::vector<MessageHeader> emails;
 
     sqlite3_stmt* stmt;
-    const char* sql = "SELECT ID, Sender, Subject, Body, Recipient FROM Mails WHERE Folder = ?;";
+    const char* sql = "SELECT Sender, Subject, UID, Recipient, Folder FROM MailHeaders WHERE Folder = ?;";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
       continue;
@@ -291,14 +281,13 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
     sqlite3_bind_text(stmt, 1, folder_name, -1, SQLITE_STATIC);
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-      long long id = sqlite3_column_int64(stmt, 0);
-      const char* sender = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-      const char* subject = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
-      const char* body = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
-      const char* recipient = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+      const char* sender = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+      const char* subject = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+      const char* uid = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+      const char* recipient = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+      const char* folder = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
 
-      emails.push_back(Message{recipient, sender, subject, body});
-      emails.back().decodeQuotedPrintable();
+      emails.push_back(MessageHeader{recipient, sender, subject, uid, folder});
     }
 
     sqlite3_finalize(stmt);
@@ -312,7 +301,66 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
   return folders;
 }
 
-std::vector<Folder> MailStorage::get_emails(const std::string &email) noexcept
+std::vector<Folder> MailStorage::get_email_headers(const std::string &email) noexcept
 {
   return load_emails(email);
+}
+
+std::string MailStorage::get_email_body(const std::string& uid, const std::string& folder_path, 
+                            const std::string& email, const std::string& password) noexcept
+{
+  try{
+    std::shared_ptr<vmime::net::store> store = get_store(email, password);
+
+    // Connect to the IMAP server
+    store->connect();
+
+    auto path = vmime::utility::path::fromString(folder_path, "/", "utf-8");
+    auto folder = store->getFolder(path);
+
+    folder->open(vmime::net::folder::MODE_READ_ONLY);
+
+    auto messages = folder->getMessages(vmime::net::messageSet::byUID(uid, uid));
+
+    folder->fetchMessages(messages, vmime::net::fetchAttributes::UID);
+
+    if (messages.empty()) {
+      folder->close(false);
+      store->disconnect();
+      return "";
+    }
+
+    auto message = messages.front();
+
+    std::string body = "";
+
+    vmime::messageParser mp(message->getParsedMessage());
+
+		// Enumerate text parts
+		for (size_t i = 0 ; i < mp.getTextPartCount() ; ++i) {
+
+			const vmime::textPart& part = *mp.getTextPartAt(i);
+    
+      if (part.getType().getSubType() == vmime::mediaTypes::TEXT_PLAIN) {
+        const vmime::textPart& tp = dynamic_cast<const vmime::textPart&>(part);
+        vmime::utility::outputStreamStringAdapter textStream(body);
+				tp.getText()->extract(textStream);
+
+        break;
+      }
+    }
+
+    folder->close(false);
+    store->disconnect();
+
+    return body;
+  }
+  catch (vmime::exception& e) {
+    std::cerr << "Error retrieving email body: " << e.what() << std::endl;
+    return "";
+  }
+  catch (std::exception& e) {
+    std::cerr << "General error: " << e.what() << std::endl;
+    return "";
+  }
 }

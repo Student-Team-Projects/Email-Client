@@ -1,6 +1,5 @@
 #include "email_draft_layout.hpp"
 #include "app.hpp"
-#include "email_types.hpp"
 #include "select_input.hpp"
 
 namespace{
@@ -46,7 +45,7 @@ ftxui::Component Email_draft_layout::get_email_draft_component(){
             mail_input_style("Subject:")
         ) | ftxui::flex_shrink,
         SelectableInput(
-            &current_email_draft.message,
+            &current_email_draft.body,
             mail_input_style("Email")
         ) | ftxui::flex_shrink,
         SelectableText(
@@ -58,10 +57,10 @@ ftxui::Component Email_draft_layout::get_email_draft_component(){
     auto email_control = ftxui::Container::Horizontal({
         ftxui::Button("Send Email", [&]{
             app.send_email(current_email_draft);
-            current_email_draft = Email_draft();
+            current_email_draft = MessageToSend();
         },ftxui::ButtonOption::Animated(ftxui::Color::DarkTurquoise)),
         ftxui::Button("Reset", [&]{
-            current_email_draft = Email_draft();
+            current_email_draft = MessageToSend();
         },ftxui::ButtonOption::Animated(ftxui::Color::Cyan3) ) 
     });
 

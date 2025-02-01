@@ -6,8 +6,6 @@
 
 
 class Application_frontend;
-class Email_draft;
-
 
 class Application {
 public:
@@ -22,9 +20,10 @@ public:
     void change_state(State new_state);
     void set_current_email_address(std::string new_address);
     std::string get_current_email_address();
-    void send_email(const Email_draft& email);
+    void send_email(const MessageToSend& email);
     void synchronize();
-    std::vector<Folder> fetch_emails();
+    std::vector<Folder> fetch_email_headers();
+    std::string get_email_body(const std::string& uid, const std::string& folder_path);
 
     static std::filesystem::path get_home_path() noexcept;
     static std::string get_config_path();
