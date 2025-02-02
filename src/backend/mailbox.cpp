@@ -11,6 +11,7 @@
 #include "html_parser.h"
 #include "certificate.h"
 #include "mail_storage.h"
+#include "logging/logging.hpp"
 
 Mailbox::Mailbox(const std::string &email, const std::string &password)
   : email(email), password(password)
@@ -47,10 +48,10 @@ void Mailbox::send(const MessageToSend &message) noexcept
     transport->disconnect();
   }
   catch (vmime::exception& e) {
-    std::cerr << "Error sending email: " << e.what() << std::endl;
+    logging::log("Error sending email: " + (std::string)e.what());
   }
   catch (std::exception& e) {
-    std::cerr << "General error: " << e.what() << std::endl;
+    logging::log("General error: " + (std::string)e.what());
   }
 }
 
