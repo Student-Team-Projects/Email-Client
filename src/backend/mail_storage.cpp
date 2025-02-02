@@ -10,6 +10,7 @@
 #include <cassert>
 
 #include <vmime/vmime.hpp>
+#include "logging/logging.hpp"
 
 std::filesystem::path get_db_path(const std::string &email) noexcept
 {
@@ -29,7 +30,7 @@ void init_db(sqlite3* db) noexcept
 
   int rc = sqlite3_exec(db, sql, nullptr, nullptr, &err_msg);
   if (rc != SQLITE_OK) {
-      std::cerr << "SQL error: " << err_msg << std::endl;
+      logging::log("SQL error: " + (std::string)(err_msg));
       sqlite3_free(err_msg);
   }
 }
@@ -42,7 +43,7 @@ sqlite3 *open_db(const std::string &email) noexcept
     std::filesystem::create_directories(get_db_path(email).parent_path());
   }
   catch(const std::exception& e){
-    std::cerr << "Failed to create directory: " << e.what() << std::endl;
+    logging::log("Failed to create directory: " + (std::string)(e.what()));
     return nullptr;
   }
 
@@ -52,7 +53,7 @@ sqlite3 *open_db(const std::string &email) noexcept
 
   int rc = sqlite3_open(db_path.c_str(), &db);
   if (rc) {
-      std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
+      logging::log("Can't open database: " + (std::string)sqlite3_errmsg(db));
       return nullptr;
   }
 
@@ -71,13 +72,13 @@ std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
   const char* sql = "SELECT COUNT(*) FROM MailHeaders;";
   int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
-      std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+      logging::log("Failed to prepare statement: " + (std::string)sqlite3_errmsg(db));
       return 0;
   }
 
   rc = sqlite3_step(stmt);
   if (rc != SQLITE_ROW) {
-      std::cerr << "Failed to step: " << sqlite3_errmsg(db) << std::endl;
+      logging::log("Failed to step: " + (std::string)sqlite3_errmsg(db));
       return 0;
   }
 
@@ -95,7 +96,7 @@ bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
     sqlite3_stmt* stmt;
     for (MessageHeader& message : folder.messages) {
       if (sqlite3_prepare_v2(db, mail_sql, -1, &stmt, nullptr) != SQLITE_OK) {
-        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        logging::log("Failed to prepare statement: " + (std::string)sqlite3_errmsg(db));
         return false;
       }
 
@@ -106,7 +107,7 @@ bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
       sqlite3_bind_text(stmt, 5, message.recipient.c_str(), -1, SQLITE_STATIC);
 
       if (sqlite3_step(stmt) != SQLITE_DONE) {
-        std::cerr << "Failed to step: " << sqlite3_errmsg(db) << std::endl;
+        logging::log("Failed to step: " + (std::string)sqlite3_errmsg(db));
         sqlite3_finalize(stmt);
         return false;
       }
@@ -200,10 +201,10 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
           HtmlParser::decode_quoted_printable(emails.back());
         }
         catch (vmime::exception& e) {
-          std::cerr << "Error processing email: " << e.what() << std::endl;
+          logging::log("Error processing email: " +(std::string)e.what());
         }
         catch (std::exception& e) {
-          std::cerr << "General error: " << e.what() << std::endl;
+          logging::log("General error: " + (std::string)e.what());
         }
       }
 
@@ -217,11 +218,11 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
     store->disconnect();
   }
   catch (vmime::exception& e) {
-    std::cerr << "Error retrieving emails: " << e.what() << std::endl;
+    logging::log("Error retrieving emails: " + (std::string)e.what());
     return {folders, false};
   }
   catch (std::exception& e) {
-    std::cerr << "General error: " << e.what() << std::endl;
+    logging::log("General error: " +(std::string)e.what());
     return {folders, false};
   }
 
@@ -239,7 +240,7 @@ bool MailStorage::synchronize(const std::string &email, const std::string &passw
   char* err_msg = nullptr;
   int rc = sqlite3_exec(db, sql, nullptr, nullptr, &err_msg);
   if (rc != SQLITE_OK) {
-      std::cerr << "SQL error: " << err_msg << std::endl;
+      logging::log("SQL error: " + (std::string)err_msg);
       sqlite3_free(err_msg);
       sqlite3_close(db);
       return false;
@@ -263,7 +264,7 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
   sqlite3_stmt* folder_stmt;
   const char* folder_sql = "SELECT DISTINCT Folder FROM MailHeaders;";
   if (sqlite3_prepare_v2(db, folder_sql, -1, &folder_stmt, nullptr) != SQLITE_OK) {
-    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+    logging::log("Failed to prepare statement: " + (std::string)sqlite3_errmsg(db));
     return folders;
   }
 
@@ -274,7 +275,7 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
     sqlite3_stmt* stmt;
     const char* sql = "SELECT Sender, Subject, UID, Recipient, Folder FROM MailHeaders WHERE Folder = ?;";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-      std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+      logging::log("Failed to prepare statement: " +(std::string)sqlite3_errmsg(db));
       continue;
     }
 
@@ -356,11 +357,11 @@ std::string MailStorage::get_email_body(const std::string& uid, const std::strin
     return body;
   }
   catch (vmime::exception& e) {
-    std::cerr << "Error retrieving email body: " << e.what() << std::endl;
+    logging::log("Error retrieving email body: " +(std::string)e.what());
     return "";
   }
   catch (std::exception& e) {
-    std::cerr << "General error: " << e.what() << std::endl;
+    logging::log("General error: " + (std::string)e.what());
     return "";
   }
 }

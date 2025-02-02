@@ -10,6 +10,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+
+option(ENABLE_LOG "Enable logging" OFF)
+
+if(ENABLE_LOG)
+    add_definitions(-DLOG)
+endif()
+
 # --- Fetch FTXUI ----------------------------------------------------
 include(FetchContent)
 
@@ -47,6 +54,7 @@ add_executable(email_client
 target_include_directories(email_client PUBLIC src)
 add_subdirectory(src/backend)
 add_subdirectory(src/frontend)
+add_subdirectory(src/logging)
 
 target_link_libraries(email_client 
   PRIVATE ftxui::screen

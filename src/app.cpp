@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include <nlohmann/json.hpp>
+#include "logging/logging.hpp"
 
 namespace{
 
@@ -39,17 +40,18 @@ void Application::change_state(State new_state){
 }
 
 void Application::send_email(const MessageToSend& email){
-    std::cerr << "sending email..." << std::endl;
+    logging::log("sending email...");
     if(email.recipient.empty() || email.subject.empty() || email.body.empty()){
         return;
     }
 
     std::ifstream configFile(get_config_path());
     if (!configFile){
-        std::cerr << "Failed to open config.json"<< std::endl;
+        logging::log("Failed to open config.json");
+        return;
     }
 
-    std::cerr << "managed to open config.json"<< std::endl;
+    logging::log("managed to open config.json");
 
     nlohmann::json config;
     configFile >> config;
@@ -61,14 +63,14 @@ void Application::send_email(const MessageToSend& email){
         return v["sender_email"] == current_email_address;
     });
     if(user == config.end()){
-        std::cerr << "No app password provided for the current email address!";
+        logging::log("No app password provided for the current email address!");
         return;
     }
     appPassword = (std::string)(*user)["app_password"];
 
     Mailbox mailbox(senderEmail, appPassword);
     mailbox.send(email);
-    std::cerr << "email sent"<< std::endl;
+    logging::log("email sent");
 }
 
 void Application::synchronize()
@@ -80,7 +82,7 @@ void Application::synchronize()
 std::vector<Folder> Application::fetch_email_headers(){
     Mailbox mailbox = get_current_mailbox();
     std::vector<Folder> emails = mailbox.get_email_headers();
-    std::cerr << "emails retrieved"<< std::endl;
+    logging::log("emails retrieved");
     return emails;
 }
 
@@ -94,7 +96,7 @@ std::filesystem::path Application::get_home_path() noexcept
 {
     const char* home = std::getenv("HOME");
     if (home == nullptr) {
-        std::cerr << "Failed to get home directory" << std::endl;
+        logging::log("Failed to get home directory");
         return std::filesystem::current_path();
     }
 
@@ -108,10 +110,10 @@ std::string Application::get_config_path()
 
 void Application::set_current_email_address(std::string new_address){
     current_email_address = new_address;
-    std::cerr<<"set_current"<<std::endl;
+    logging::log("set_current");
     // Refresh emails immidiately if we have some loaded
     frontend->refresh_emails();
-    std::cerr<<"after_refresh"<<std::endl;
+    logging::log("after_refresh");
     // And download them
     frontend->set_up_synchronization();
 }
@@ -130,7 +132,7 @@ Mailbox Application::get_current_mailbox()
 {
     std::ifstream configFile(get_config_path());
     if (!configFile){
-        std::cerr << "Failed to open config.json"<< std::endl;
+        logging::log("Failed to open config.json");
     }
 
     nlohmann::json config;

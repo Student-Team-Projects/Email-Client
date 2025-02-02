@@ -9,6 +9,7 @@
 #include <regex>
 
 #include "mail_types.h"
+#include "logging/logging.hpp"
 
 void extract_text_from_node(xmlNode* node, std::string& text) {
     for (xmlNode* current = node; current != nullptr; current = current->next) {
@@ -126,8 +127,8 @@ std::string HtmlParser::extract_text(const std::string& html) {
 
     htmlDocPtr doc = htmlReadMemory(html.c_str(), html.size(), nullptr, nullptr, HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
     if (doc == nullptr) {
-        std::cerr << "Failed to parse HTML" << std::endl;
-        std::cerr << html << std::endl;
+        logging::log("Failed to parse HTML");
+        logging::log(html);
         throw std::runtime_error("Failed to parse HTML");
     }
 
