@@ -3,6 +3,9 @@
 
 class Application;
 namespace log_in{
+    /*
+    * Struct containing information needed to show log_in layout.
+    */
     struct Log_in_data{
         int page = 0;
         constexpr static int page_size = 4;  

@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-
+# If enabled cerr will be used to log information.
 option(ENABLE_LOG "Enable logging" OFF)
 
 if(ENABLE_LOG)

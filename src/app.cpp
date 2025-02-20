@@ -48,6 +48,9 @@ void Application::add_on_state_change_event(std::function<void(State, State)> on
     on_state_change_events.push_back(on_event);
 }
 
+/*
+* Use this method if you want to send an email from currently selected email address.
+*/
 void Application::send_email(const MessageToSend& email){
     logging::log("sending email...");
     if(email.recipient.empty() || email.subject.empty() || email.body.empty()){

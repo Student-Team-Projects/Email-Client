@@ -2,7 +2,9 @@
 #include "backend/mail_types.h"
 #include "app.hpp"
 #include "ftxui/component/component.hpp"
-
+/*
+* A class containing information needed to show email folders AND inbox layouts.
+*/
 class Folder_menu{
 public:
     Folder_menu(Application& app, DisplayMessage& current_email, std::vector<Folder>& folder_vector, 

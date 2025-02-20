@@ -6,7 +6,9 @@
 #include <functional>
 
 class Application_frontend;
-
+/*
+* Main application class, contains state information and allows for communication between backend and frontend.
+*/
 class Application {
 public:
     enum class State {
@@ -35,6 +37,7 @@ private:
     Mailbox get_current_mailbox();
     State current_state;
     std::unique_ptr<Application_frontend> frontend;
+    /*Email account the user is currently logged in and using.*/
     std::string current_email_address = "";
     std::vector<std::function<void(State, State)>> on_state_change_events{};
 };
