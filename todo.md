@@ -1,0 +1,12 @@
+# Issues
+- problems with ftxui elements' focus, affects scroll and arrow keys
+- 2 ^C needed to close down the application
+# Enhancement
+- other emails than gmail
+- attachments
+- gmail using OAuth
+- better UI
+- multiple recipients
+- caching most recent emails from each folder
+- selectable input with arrows and preferably shift
+- drafts

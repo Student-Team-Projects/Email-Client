@@ -8,6 +8,9 @@
 #include "folder_menu.hpp"
 
 class Application;
+/*
+* Main frontend class contains layouts, and classes wrapping the layouts and synchronization logic.
+*/
 class Application_frontend{
 public:
     Application_frontend(Application& app);
