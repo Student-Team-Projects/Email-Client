@@ -1,6 +1,7 @@
 # Issues
 - problems with ftxui elements' focus, affects scroll and arrow keys
 - 2 ^C needed to close down the application
+- need to restart the app after first log in (sometimes at least)
 # Enhancement
 - other emails than gmail
 - attachments
