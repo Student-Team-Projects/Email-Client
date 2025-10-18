@@ -3,3 +3,5 @@ recipients.txt
 
 build/
 .vscode/
+.cache
+
