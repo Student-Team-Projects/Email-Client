@@ -14,7 +14,8 @@
 namespace{
 
     void setup_config_file(){
-        std::filesystem::create_directories(Application::get_home_path() / ".email_client");
+        std::filesystem::create_directories(Application::get_config_home_path());
+        std::filesystem::create_directories(Application::get_data_home_path());
 
         bool needs_init = !std::filesystem::exists(Application::get_config_path());
 
@@ -104,20 +105,27 @@ std::string Application::get_email_body(const std::string &uid, const std::strin
     return mailbox.get_email_body(uid, folder_path);
 }
 
-std::filesystem::path Application::get_home_path() noexcept
+std::filesystem::path Application::get_config_home_path() noexcept
 {
+    const char* config_home = std::getenv("XDG_CONFIG_HOME");
+    if (config_home != nullptr) return std::filesystem::path(config_home) / "email_client";
     const char* home = std::getenv("HOME");
-    if (home == nullptr) {
-        logging::log("Failed to get home directory");
-        return std::filesystem::current_path();
-    }
-
-    return std::filesystem::path(home);
+    if (home != nullptr) return std::filesystem::path(home) / ".config" / "email_client";
+    return std::filesystem::current_path() / ".email_client";
 }
 
-std::string Application::get_config_path()
+std::filesystem::path Application::get_data_home_path() noexcept
 {
-    return Application::get_home_path() / ".email_client/config.json";
+    const char* data_home = std::getenv("XDG_DATA_HOME");
+    if (data_home != nullptr) return std::filesystem::path(data_home) / "email_client";
+    const char* home = std::getenv("HOME");
+    if (home != nullptr) return std::filesystem::path(home) / ".local" / "share" / "email_client";
+    return std::filesystem::current_path() / ".email_client";
+}
+
+std::string Application::get_config_path() noexcept
+{
+    return Application::get_config_home_path() / "config.json";
 }
 
 void Application::set_current_email_address(std::string new_address){

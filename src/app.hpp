@@ -29,8 +29,9 @@ public:
     std::vector<Folder> fetch_email_headers();
     std::string get_email_body(const std::string& uid, const std::string& folder_path);
 
-    static std::filesystem::path get_home_path() noexcept;
-    static std::string get_config_path();
+    static std::filesystem::path get_config_home_path() noexcept;
+    static std::filesystem::path get_data_home_path() noexcept;
+    static std::string get_config_path() noexcept;
 
     Application();
 private:

@@ -14,7 +14,7 @@
 
 std::filesystem::path get_db_path(const std::string &email) noexcept
 {
-  return Application::get_home_path() / ".email_client/data" / (email + ".db");
+    return Application::get_data_home_path() / (email + ".db");
 }
 
 void init_db(sqlite3* db) noexcept
