@@ -44,6 +44,10 @@ endfunction(deferred_include_directories)
 include(FetchContent)
 include(ExternalProject)
 
+# tvision (Turbo Vision)
+add_subdirectory(deps/tvision)
+deferred_link_libraries(PRIVATE tvision)
+
 set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 set(FETCHCONTENT_QUIET OFF)
 
@@ -106,6 +110,7 @@ deferred_link_libraries(
 # TLDR: It really wants to be installed globally, but that's annoying for us so
 #   we don't let it. Instead we use the ExternalProject cannon to make it work.
 
+set(PKGVER_VMIME master)
 if(NOT EXTERNAL_VMIME)
   set(VMIME_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/external-vmime)
   ExternalProject_Add(vmime
