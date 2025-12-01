@@ -29,7 +29,7 @@ namespace{
 
 void Application::run(std::unique_ptr<Application_frontend> front){
     frontend = std::move(front);
-    frontend->loop();
+    frontend->run();
 }
 
 bool Application::is_in_state(State state){
