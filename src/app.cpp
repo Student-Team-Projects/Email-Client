@@ -29,6 +29,7 @@ namespace{
 
 void Application::run(std::unique_ptr<Application_frontend> front){
     frontend = std::move(front);
+    if (!frontend->loginSucceeded) return;
     frontend->run();
 }
 
