@@ -1,10 +1,22 @@
 #include "app_frontend.hpp"
 #include "email_window.hpp"
+#include "login_dialog.hpp"
 
 Application_frontend::Application_frontend(Application& app) :
     TProgInit(&Application_frontend::initStatusLine, &Application_frontend::initMenuBar, &Application_frontend::initDeskTop),
-    app(app)
-{}
+    app(app),
+    loginSucceeded(false) {
+    TRect r = deskTop->getExtent();
+    r = r.grow(0,1);
+    LoginDialog *dlg = new LoginDialog(r);
+    ushort res = execView(dlg);
+    destroy(dlg);
+
+    if (res == cmOK) {
+        loginSucceeded = true;
+        deskTop->insert(new EmailWindow(deskTop->getExtent()));
+    } else loginSucceeded = false;
+}
 
 
 TStatusLine* Application_frontend::initStatusLine( TRect r )
@@ -16,29 +28,6 @@ TStatusLine* Application_frontend::initStatusLine( TRect r )
             *new TStatusItem( 0, kbF10, cmMenu )
             );
 } 
-
-class MyDeskTop : public TDeskTop {
-public:
-    MyDeskTop(TRect r) : TDeskTop(r), TDeskInit(&MyDeskTop::initBackground) {}
-
-    virtual TColorAttr mapColor(uchar index) noexcept override {
-        // Get original attributes first:
-        TColorAttr color = TDeskTop::mapColor(index);
-
-        if (index == 1) { 
-            color = TColorAttr(0xFF7700, '\x3'); 
-        }
-
-        return color;
-    }
-};
-
-TDeskTop* Application_frontend::initDeskTop(TRect r) {
-    auto* win = new EmailWindow(r);
-    auto* desktop = new MyDeskTop(r);
-    desktop->insert(win);
-    return desktop;
-}
 
 /** Start synchronizing the mailbox periodically.
  * Call this method once when user logs in to a mailbox, and then

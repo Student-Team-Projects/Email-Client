@@ -20,10 +20,12 @@ public:
     void set_up_synchronization();
     void synchronize();
     void refresh_emails();
+
+    bool loginSucceeded;
+
 private:
     void set_email_body_dim(bool value);
     static TStatusLine* initStatusLine(TRect T);
-    static TDeskTop* initDeskTop(TRect T);
 
     Application& app;
 
