@@ -5,10 +5,11 @@
 #define Uses_TString
 #include <tvision/tv.h>
 #include <string>
+#include "TPasswordInputLine.hpp"
 
 class LoginDialog : public TDialog {
     TInputLine *user;
-    TInputLine *pass;
+    TPasswordInputLine *pass;
 
     virtual TColorAttr mapColor(uchar) noexcept override;
 

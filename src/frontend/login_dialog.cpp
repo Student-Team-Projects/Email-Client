@@ -10,7 +10,7 @@ LoginDialog::LoginDialog(TRect r) :
     insert(user);
 
     insert(new TLabel(TRect(3, 5, 10, 6), "Pass:", this));
-    pass = new TInputLine(TRect(12, 5, 32, 6), 30);
+    pass = new TPasswordInputLine(TRect(12, 5, 32, 6), 30);
     insert(pass);
 
     insert(new TButton(TRect(8, 8, 18, 10), "Login", cmOK, bfDefault));
@@ -71,7 +71,7 @@ TColorAttr LoginDialog::mapColor(uchar index) noexcept {
         return { RGB(255,255,255), RGB(60,90,150) };
     case 28: // ListViewer selected
         return { RGB(255,255,255), RGB(90,120,180) };
-    case 30: // InfoPane
+    case 30: // InfoPanel
         return { RGB(200,220,255), RGB(30,50,90) };
     default:
         return c;
