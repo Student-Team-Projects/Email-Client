@@ -30,6 +30,15 @@ LoginDialog::LoginDialog(TRect r) :
     insert(new TButton(TRect(10, 24, 30, 26), "New account", cmNewAccount, 0));
 }
 
+std::string LoginDialog::user() const {
+    if(list->focused == -1) return "";
+
+    int idx=list->focused;
+    char* user = new char[50];
+    list->getText(user, idx, 50);
+    return std::string(user);
+}
+
 std::string LoginDialog::password() const { return pass->data; }
 
 void LoginDialog::handleEvent(TEvent& event){

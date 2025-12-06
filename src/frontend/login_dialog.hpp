@@ -28,5 +28,6 @@ class LoginDialog : public TDialog {
 
 public:
     LoginDialog(TRect r);;
+    std::string user() const;
     std::string password() const;
 };
