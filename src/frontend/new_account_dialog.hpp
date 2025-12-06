@@ -3,30 +3,27 @@
 #define Uses_TLabel
 #define Uses_TButton
 #define Uses_TEvent
-#define Uses_TListBox
-#define Uses_TScrollBar
-#define Uses_TStringCollection
 #include <tvision/tv.h>
 #include <nlohmann/json.hpp>
 #include <string>
-#include <vector>
 #include <fstream>
 #include "TPasswordInputLine.hpp"
 #include "commands.hpp"
-#include "logging/logging.hpp"
 #include "app.hpp"
+#include "logging/logging.hpp"
 
-class LoginDialog : public TDialog {
-    TListBox *list;
+class NewAccountDialog : public TDialog {
+    TInputLine *user;
     TPasswordInputLine *pass;
 
-    std::vector<std::pair<std::string, std::string>> get_accounts();
+    void add_account(const std::pair<std::string, std::string>& new_account);
 
     virtual TColorAttr mapColor(uchar) noexcept override;
 
     virtual void handleEvent(TEvent& event) override;
 
 public:
-    LoginDialog(TRect r);;
+    NewAccountDialog(TRect r);
+    std::string username() const;
     std::string password() const;
 };

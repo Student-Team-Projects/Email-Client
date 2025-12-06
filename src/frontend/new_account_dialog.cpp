@@ -1,46 +1,40 @@
-#include "login_dialog.hpp"
+#include "new_account_dialog.hpp"
 
-LoginDialog::LoginDialog(TRect r) :
-    TDialog(r, "Login"),
+NewAccountDialog::NewAccountDialog(TRect r) :
+    TDialog(r, "Create new account"),
     TWindowInit(&TDialog::initFrame) {
     options |= ofCentered;
 
-    TScrollBar* listScroll = new TScrollBar(TRect(20, 8, 21, 15));
-    list = new TListBox(TRect(3, 8, 20, 15),1, listScroll);
-    TStringCollection *accountStrings = new TStringCollection(50, 50); 
-    for (const auto& account : get_accounts()) {
-        logging::log(account.first);
-        char* copy = new char[account.first.size() + 1];
-        std::strcpy(copy, account.first.c_str());
-        accountStrings->insert(copy);
-    }
-    list->newList(accountStrings);
+    insert(new TLabel(TRect(3, 3, 10, 4), "User:", this));
+    user = new TInputLine(TRect(12, 3, 32, 4), 30);
+    insert(user);
 
-
-    insert(new TLabel(TRect(3, 5, 20, 6), "Choose account:", this));
-    insert(list);
-    insert(listScroll);
-
-    insert(new TLabel(TRect(3, 17, 10, 18), "Pass:", this));
-    pass = new TPasswordInputLine(TRect(12, 17, 32, 18), 30);
+    insert(new TLabel(TRect(3, 5, 10, 6), "Pass:", this));
+    pass = new TPasswordInputLine(TRect(12, 5, 32, 6), 30);
     insert(pass);
 
-    insert(new TButton(TRect(8, 20, 18, 22), "Login", cmOK, bfDefault));
-    insert(new TButton(TRect(22, 20, 32, 22), "Cancel", cmCancel, 0));
-    insert(new TButton(TRect(10, 24, 30, 26), "New account", cmNewAccount, 0));
+    insert(new TButton(TRect(8, 8, 18, 10), "Create", cmOK, bfDefault));
+    insert(new TButton(TRect(22, 8, 32, 10), "Cancel", cmCancel, 0));
+    insert(new TButton(TRect(10, 12, 30, 14), "Login instead", cmLogin, 0));
 }
 
-std::string LoginDialog::password() const { return pass->data; }
+std::string NewAccountDialog::username() const { return user->data; }
+std::string NewAccountDialog::password() const { return pass->data; }
 
-void LoginDialog::handleEvent(TEvent& event){
-    TDialog::handleEvent(event);
-
-    if (event.what == evCommand && event.message.command == cmNewAccount){
-        endModal(cmNewAccount);
+void NewAccountDialog::handleEvent(TEvent& event){
+    if (event.what == evCommand){
+        if (event.message.command == cmOK){
+            add_account({username(),password()});
+        }
+        if (event.message.command == cmLogin){
+            endModal(cmLogin);
+        }
     }
+
+    TDialog::handleEvent(event);
 }
 
-TColorAttr LoginDialog::mapColor(uchar index) noexcept {
+TColorAttr NewAccountDialog::mapColor(uchar index) noexcept {
     using RGB = TColorRGB;
 
     TColorAttr c = TDialog::mapColor(index);
@@ -98,19 +92,22 @@ TColorAttr LoginDialog::mapColor(uchar index) noexcept {
     }
 }
 
-std::vector<std::pair<std::string, std::string>> LoginDialog::get_accounts(){
+void NewAccountDialog::add_account(const std::pair<std::string, std::string>& new_account){
     std::ifstream configFile(Application::get_config_path());
-    if (!configFile){ 
+    if (!configFile){
         logging::log("Failed to open config.json");
+        return;
     }
 
     nlohmann::json config;
     configFile >> config;
 
-    std::vector<std::pair<std::string, std::string>> emails_passwords;
-    for(auto& account : config){
-        emails_passwords.push_back({std::string(account["sender_email"]), std::string(account["app_password"])});
-    }
+    nlohmann::json new_account_json;
+    new_account_json["sender_email"] = new_account.first;
+    new_account_json["app_password"] = new_account.second;
+    config.push_back(new_account_json);
 
-    return emails_passwords;
+    configFile.close();
+    std::ofstream new_config_file(Application::get_config_path(), std::ios::trunc);
+    new_config_file << config;
 }

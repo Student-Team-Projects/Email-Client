@@ -1,5 +1,7 @@
 #pragma once
 #include "app.hpp"
+#include "commands.hpp"
+#include <thread>
 #include <condition_variable>
 
 #define Uses_TApplication
@@ -20,6 +22,8 @@ public:
     void set_up_synchronization();
     void synchronize();
     void refresh_emails();
+
+    virtual void run() override;
 
     bool loginSucceeded;
 

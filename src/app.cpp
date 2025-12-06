@@ -29,8 +29,8 @@ namespace{
 
 void Application::run(std::unique_ptr<Application_frontend> front){
     frontend = std::move(front);
-    if (!frontend->loginSucceeded) return;
     frontend->run();
+    if(frontend->loginSucceeded == false) return;
 }
 
 bool Application::is_in_state(State state){
