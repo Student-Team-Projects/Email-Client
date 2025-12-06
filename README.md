@@ -22,7 +22,7 @@ If this is your first clone of the repository (or after pulling new submodules):
 `cmake --build .`
 
 #### 4. Run the C++ email client application  
-./email_client
+`./email_client`
 
 
 If you have [`just`](https://just.systems) installed, you can also use the
