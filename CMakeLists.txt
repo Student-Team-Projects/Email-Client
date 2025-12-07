@@ -16,6 +16,7 @@ set(PKGVER_JSON v3.12.0)
 set(PKGVER_LIBXML2 v2.15.0)
 set(PKGVER_SQLITE3 v3.50.2)
 set(PKGVER_VMIME 7046a4360bbeea21d1d8b5cfa4589bb4df7f980d)
+set(PKGVER_TVISION 423aeb568a181ffebb3695859654385950588a93)
 
 option(ENABLE_LOG "Enable logging" OFF)
 
@@ -44,12 +45,21 @@ endfunction(deferred_include_directories)
 include(FetchContent)
 include(ExternalProject)
 
-# tvision (Turbo Vision)
-add_subdirectory(deps/tvision)
-deferred_link_libraries(PRIVATE tvision)
-
 set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 set(FETCHCONTENT_QUIET OFF)
+
+# TVISION
+# add_subdirectory(deps/tvision)
+# deferred_link_libraries(PRIVATE tvision)
+
+FetchContent_Declare(tvision
+  GIT_REPOSITORY https://github.com/magiblot/tvision.git
+  GIT_TAG        ${PKGVER_TVISION}
+  GIT_PROGRESS   TRUE
+  GIT_SHALLOW    TRUE
+  EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(tvision)
 
 # FTXUI
 FetchContent_Declare(ftxui
@@ -164,5 +174,5 @@ add_subdirectory(src/backend)
 add_subdirectory(src/frontend)
 add_subdirectory(src/logging)
 
-target_link_libraries(email_client ${_deferred_link_libraries})
+target_link_libraries(email_client PRIVATE ${_deferred_link_libraries})
 target_link_directories(email_client PRIVATE ${_deferred_link_directories})
