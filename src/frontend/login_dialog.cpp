@@ -21,11 +21,7 @@ LoginDialog::LoginDialog(TRect r) :
     insert(list);
     insert(listScroll);
 
-    insert(new TLabel(TRect(3, 17, 10, 18), "Pass:", this));
-    pass = new TPasswordInputLine(TRect(12, 17, 32, 18), 30);
-    insert(pass);
-
-    insert(new TButton(TRect(8, 20, 18, 22), "Login", cmOK, bfDefault));
+    insert(new TButton(TRect(8, 20, 18, 22), "Choose", cmOK, bfDefault));
     insert(new TButton(TRect(22, 20, 32, 22), "Cancel", cmCancel, 0));
     insert(new TButton(TRect(10, 24, 30, 26), "New account", cmNewAccount, 0));
 }
@@ -38,8 +34,6 @@ std::string LoginDialog::user() const {
     list->getText(user, idx, 50);
     return std::string(user);
 }
-
-std::string LoginDialog::password() const { return pass->data; }
 
 void LoginDialog::handleEvent(TEvent& event){
     TDialog::handleEvent(event);

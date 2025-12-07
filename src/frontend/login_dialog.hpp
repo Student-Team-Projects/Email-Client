@@ -18,7 +18,6 @@
 
 class LoginDialog : public TDialog {
     TListBox *list;
-    TPasswordInputLine *pass;
 
     std::vector<std::pair<std::string, std::string>> get_accounts();
 
@@ -29,5 +28,4 @@ class LoginDialog : public TDialog {
 public:
     LoginDialog(TRect r);;
     std::string user() const;
-    std::string password() const;
 };
