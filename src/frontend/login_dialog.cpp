@@ -9,7 +9,6 @@ LoginDialog::LoginDialog(TRect r) :
     list = new TListBox(TRect(3, 8, 20, 15),1, listScroll);
     TStringCollection *accountStrings = new TStringCollection(50, 50); 
     for (const auto& account : get_accounts()) {
-        logging::log(account.first);
         char* copy = new char[account.first.size() + 1];
         std::strcpy(copy, account.first.c_str());
         accountStrings->insert(copy);
@@ -21,9 +20,9 @@ LoginDialog::LoginDialog(TRect r) :
     insert(list);
     insert(listScroll);
 
-    insert(new TButton(TRect(8, 20, 18, 22), "Choose", cmOK, bfDefault));
-    insert(new TButton(TRect(22, 20, 32, 22), "Cancel", cmCancel, 0));
-    insert(new TButton(TRect(10, 24, 30, 26), "New account", cmNewAccount, 0));
+    insert(new TButton(TRect(8, 17, 18, 19), "Choose", cmOK, bfDefault));
+    insert(new TButton(TRect(22, 17, 32, 19), "Cancel", cmCancel, 0));
+    insert(new TButton(TRect(10, 21, 30, 23), "New account", cmNewAccount, 0));
 }
 
 std::string LoginDialog::user() const {
