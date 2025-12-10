@@ -1,7 +1,6 @@
 #include "inbox_window.hpp"
 #include "email_window.hpp"
 #include <sstream>
-#include <iostream>
 
 class UnsortedStringCollection : public TStringCollection {
 public:
@@ -80,9 +79,6 @@ void InboxWindow::updateContent(int index) {
 
     if (index < 0 || index >= emails.size()) return;
 
-    std::cerr << index << "\n";
-
-
     if (currentContentView != nullptr) {
         remove(currentContentView);
         destroy(currentContentView); // !!! zwalniam pamięć
@@ -90,8 +86,6 @@ void InboxWindow::updateContent(int index) {
     }
 
     const auto& mail = emails[index];
-
-    std::cerr<<emails[index].sender<<"\n";
 
     std::stringstream ss;
     ss << "From: " << mail.sender << "\n"
@@ -127,15 +121,12 @@ void InboxWindow::handleEvent(TEvent& event) {
 
     TWindow::handleEvent(event);
 
-    // std::cerr<<"olfF: "<<oldFocus<<" newF: "<<list->focused<<"\n";
-
     if (list->focused != oldFocus) {
         updateContent(list->focused);
     }
 
     if (event.what == evBroadcast) {
         if (event.message.command == cmCommandSetChanged) {
-            // std::cerr<<"focused: "<<list->focused<<"\n";
             if(list->focused != oldFocus){
                 updateContent(list->focused);
             }
