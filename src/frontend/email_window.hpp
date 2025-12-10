@@ -3,6 +3,7 @@
 #define Uses_TEditor
 #define Uses_TLabel
 #define Uses_TScrollBar
+#define Uses_TButton
 #include <tvision/tv.h>
 
 
@@ -17,4 +18,5 @@ class EmailWindow : public TWindow {
 
 public:
     EmailWindow(const TRect &bounds);
+    virtual void handleEvent(TEvent& event) override;
 };

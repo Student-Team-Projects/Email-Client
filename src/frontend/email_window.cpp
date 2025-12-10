@@ -1,6 +1,9 @@
 #include "email_window.hpp"
 #include "app_frontend.hpp"
 
+const ushort cmSend = 100;
+const ushort cmCanc = 101;
+
 EmailWindow::EmailWindow(const TRect &bounds) :
     TWindow(bounds, "Compose Email", wnNoNumber),
     TWindowInit(&EmailWindow::initFrame) {
@@ -36,6 +39,39 @@ EmailWindow::EmailWindow(const TRect &bounds) :
 
     bodyEditor = new TEditor(bodyRect, hScroll, vScroll, nullptr, 0xFFFF);
     insert(bodyEditor);
+
+
+    int buttonY = size.y - 2;
+    int buttonWidth = 10;
+    int gap = 2;
+    
+    int centerX = size.x / 2;
+    
+    int sendX = centerX - buttonWidth - (gap / 2);
+    int cancelX = centerX + (gap / 2);
+
+    insert(new TButton(TRect(sendX, buttonY, sendX + buttonWidth, buttonY + 2), 
+                       "~S~end", cmSend, bfDefault));
+
+    insert(new TButton(TRect(cancelX, buttonY, cancelX + buttonWidth, buttonY + 2), 
+                       "~C~ancel", cmCanc, bfDefault));
+}
+
+void EmailWindow::handleEvent(TEvent& event){
+    TWindow::handleEvent(event);
+    if (event.what == evCommand) {
+        if(event.message.command == cmSend){
+            // tutaj musimy jeszcze dodać wpisywanie do listy maili (przy podpinaniu backendu)
+            close(); 
+            clearEvent(event);
+            return;
+        }
+        else if(event.message.command == cmCanc){
+            close(); 
+            clearEvent(event);
+            return;
+        }
+    }
 }
 
 TColorAttr EmailWindow::mapColor(uchar index) noexcept {
