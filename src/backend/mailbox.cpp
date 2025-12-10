@@ -19,6 +19,7 @@ Mailbox::Mailbox(const std::string &email, const std::string &password)
 
 void Mailbox::send(const MessageToSend &message) noexcept
 {
+  logging::log("mailbox_send");
   try {
     vmime::addressList to;
     to.appendAddress(vmime::make_shared<vmime::mailbox>(message.recipient));
@@ -34,7 +35,7 @@ void Mailbox::send(const MessageToSend &message) noexcept
     vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
 
     vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
-    verifier->loadRootCertificates("/etc/ssl/cert.pem");
+    verifier->loadRootCertificates();
 
     vmime::shared_ptr<vmime::net::transport> transport = session->getTransport(url);
     transport->setCertificateVerifier(verifier);
@@ -57,15 +58,18 @@ void Mailbox::send(const MessageToSend &message) noexcept
 
 void Mailbox::synchronize() noexcept
 {
+  logging::log("mailbox_synchronize");
   MailStorage::synchronize(email, password);
 }
 
 std::vector<Folder> Mailbox::get_email_headers() noexcept
 {
+  logging::log("mailbbox_get_email_headers");
   return MailStorage::get_email_headers(email);
 }
 
 std::string Mailbox::get_email_body(const std::string &uid, const std::string& folder_path) noexcept
 {
+  logging::log("mailbox_get_email_body: uid "+uid+", path: "+folder_path);
   return MailStorage::get_email_body(uid, folder_path, email, password);
 }

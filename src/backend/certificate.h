@@ -2,11 +2,13 @@
 
 #include <vmime/vmime.hpp>
 #include <fstream>
+#include "logging/logging.hpp"
 
 class certificateVerifier : public vmime::security::cert::defaultCertificateVerifier {
 public:
     void verify(const vmime::shared_ptr<vmime::security::cert::certificateChain>& chain,
                 const vmime::string& hostname) override {
+        logging::log("certficateVerifier_verify");
         try {
             setX509TrustedCerts(m_trustedCerts);
             defaultCertificateVerifier::verify(chain, hostname);
@@ -20,8 +22,13 @@ public:
         }
     }
 
-    void loadRootCertificates(const std::string& path) {
-        std::ifstream certFile(path, std::ios::binary);
+    void loadRootCertificates() {
+        logging::log("load_root_certificates");
+        std::ifstream certFile;
+        for(auto& path:defaultPaths) {
+            certFile = std::ifstream(path, std::ios::binary);
+            if(certFile) break;
+        }
         if (!certFile) throw std::runtime_error("Failed to open certificate file");
         vmime::utility::inputStreamAdapter is(certFile);
         vmime::security::cert::X509Certificate::import(is, m_trustedCerts);
@@ -29,4 +36,11 @@ public:
 
 private:
     std::vector<vmime::shared_ptr<vmime::security::cert::X509Certificate>> m_trustedCerts;
+
+    std::vector<std::string> defaultPaths = {
+        "/etc/ssl/cert.pem", // alpine
+        "/etc/ssl/certs/ca-certificates.crt", // ubuntu, debian
+        "/etc/pki/tls/certs/ca-bundle.crt", // redhat, centos, fedora, opensuse
+        "/etc/ssl/ca-bundle.pem" // opensuse
+    };
 };

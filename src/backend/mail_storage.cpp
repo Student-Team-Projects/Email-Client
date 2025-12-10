@@ -14,11 +14,13 @@
 
 std::filesystem::path get_db_path(const std::string &email) noexcept
 {
-    return Application::get_data_home_path() / (email + ".db");
+  logging::log("mail_storage_get_db_path");
+  return Application::get_data_home_path() / (email + ".db");
 }
 
 void init_db(sqlite3* db) noexcept
 {
+  logging::log("mail_storage_init_db");
   char* err_msg = nullptr;
   const char* sql = "CREATE TABLE MailHeaders ("
                     "ID INTEGER PRIMARY KEY,"
@@ -37,6 +39,7 @@ void init_db(sqlite3* db) noexcept
 
 sqlite3 *open_db(const std::string &email) noexcept
 {
+  logging::log("mail_storage_open_db");
   sqlite3* db;
 
   try{
@@ -66,6 +69,7 @@ sqlite3 *open_db(const std::string &email) noexcept
 
 std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
 {
+  logging::log("mail_storage_get_mail_count");
   sqlite3* db = open_db(email);
 
   sqlite3_stmt* stmt;
@@ -91,6 +95,7 @@ std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
 }
 
 bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
+  logging::log("mail_storage_save_emails");
   for (Folder& folder : emails) {
     const char* mail_sql = "INSERT INTO MailHeaders (Sender, Subject, Folder, UID, Recipient) VALUES (?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt;
@@ -119,11 +124,12 @@ bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
 
 std::shared_ptr<vmime::net::store> get_store(const std::string &email, const std::string &password)
 {
+  logging::log("mail_storage_get_store");
   vmime::utility::url url("imaps://imap.gmail.com:993");
   vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
 
   vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
-  verifier->loadRootCertificates("/etc/ssl/cert.pem");
+  verifier->loadRootCertificates();
 
   vmime::shared_ptr<vmime::net::store> store = session->getStore(url);
   store->setCertificateVerifier(verifier);
@@ -137,6 +143,7 @@ std::shared_ptr<vmime::net::store> get_store(const std::string &email, const std
 
 std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, const std::string &password) noexcept
 {
+  logging::log("mail_storage_fetch_emails");
   std::vector<Folder> folders;
 
   try {
@@ -231,6 +238,7 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
 
 bool MailStorage::synchronize(const std::string &email, const std::string &password) noexcept
 {
+  logging::log("mail_storage_synchronize");
   // Fetch emails before deleting
   auto [emails, status] = fetch_emails(email, password);
 
@@ -256,6 +264,7 @@ bool MailStorage::synchronize(const std::string &email, const std::string &passw
 }
 
 std::vector<Folder> load_emails(const std::string &email) noexcept {
+  logging::log("mail_storage_load_emails");
   std::vector<Folder> folders;
 
   sqlite3* db = open_db(email);
@@ -304,12 +313,14 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
 
 std::vector<Folder> MailStorage::get_email_headers(const std::string &email) noexcept
 {
+  logging::log("mail_storage_get_email_headers");
   return load_emails(email);
 }
 
 std::string MailStorage::get_email_body(const std::string& uid, const std::string& folder_path, 
                             const std::string& email, const std::string& password) noexcept
 {
+  logging::log("mail_storage_get_email_body");
   try{
     std::shared_ptr<vmime::net::store> store = get_store(email, password);
 
