@@ -1,8 +1,9 @@
 #include "login_dialog.hpp"
 
-LoginDialog::LoginDialog(TRect r) :
+LoginDialog::LoginDialog(TRect r, Application& app) :
     TDialog(r, "Login"),
-    TWindowInit(&TDialog::initFrame) {
+    TWindowInit(&TDialog::initFrame),
+    app(app) {
     options |= ofCentered;
 
     TScrollBar* listScroll = new TScrollBar(TRect(20, 8, 21, 15));
@@ -25,7 +26,7 @@ LoginDialog::LoginDialog(TRect r) :
     insert(new TButton(TRect(10, 21, 30, 23), "New account", cmNewAccount, 0));
 }
 
-std::string LoginDialog::user() const {
+std::string LoginDialog::username() const {
     if(list->focused == -1) return "";
 
     int idx=list->focused;
@@ -35,11 +36,18 @@ std::string LoginDialog::user() const {
 }
 
 void LoginDialog::handleEvent(TEvent& event){
-    TDialog::handleEvent(event);
-
-    if (event.what == evCommand && event.message.command == cmNewAccount){
-        endModal(cmNewAccount);
+    if (event.what == evCommand){
+        switch (event.message.command) {
+        case cmNewAccount:
+            endModal(cmNewAccount);
+            break;
+        case cmOK:
+            app.set_current_email_address(username());
+            break;
+        }
     }
+
+    TDialog::handleEvent(event);
 }
 
 TColorAttr LoginDialog::mapColor(uchar index) noexcept {

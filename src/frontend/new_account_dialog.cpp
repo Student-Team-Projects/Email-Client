@@ -1,8 +1,9 @@
 #include "new_account_dialog.hpp"
 
-NewAccountDialog::NewAccountDialog(TRect r) :
+NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
     TDialog(r, "Create new account"),
-    TWindowInit(&TDialog::initFrame) {
+    TWindowInit(&TDialog::initFrame),
+    app(app) {
     options |= ofCentered;
 
     insert(new TLabel(TRect(3, 3, 10, 4), "User:", this));
@@ -23,11 +24,14 @@ std::string NewAccountDialog::password() const { return pass->data; }
 
 void NewAccountDialog::handleEvent(TEvent& event){
     if (event.what == evCommand){
-        if (event.message.command == cmOK){
+        switch (event.message.command) {
+        case cmOK:
             add_account({username(),password()});
-        }
-        if (event.message.command == cmLogin){
+            app.set_current_email_address(username());
+            break;
+        case cmLogin:
             endModal(cmLogin);
+            break;
         }
     }
 

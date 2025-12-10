@@ -17,6 +17,8 @@
 #include "app.hpp"
 
 class LoginDialog : public TDialog {
+    Application& app;
+
     TListBox *list;
 
     std::vector<std::pair<std::string, std::string>> get_accounts();
@@ -26,6 +28,6 @@ class LoginDialog : public TDialog {
     virtual void handleEvent(TEvent& event) override;
 
 public:
-    LoginDialog(TRect r);;
-    std::string user() const;
+    LoginDialog(TRect r, Application& app);;
+    std::string username() const;
 };
