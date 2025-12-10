@@ -2,6 +2,7 @@
 #include "email_window.hpp"
 #include "login_dialog.hpp"
 #include "new_account_dialog.hpp"
+#include "inbox_window.hpp"
 
 Application_frontend::Application_frontend(Application& app) :
     TProgInit(&Application_frontend::initStatusLine, &Application_frontend::initMenuBar, &Application_frontend::initDeskTop),
@@ -39,7 +40,12 @@ void Application_frontend::run(){
 
     if (status == cmOK) {
         loginSucceeded = true;
+
+        TRect r = deskTop->getExtent();
+        InboxWindow* inbox = new InboxWindow(r);
+        deskTop->insert(inbox);
         TApplication::run();
+        
     } else loginSucceeded = false;
 }
 
