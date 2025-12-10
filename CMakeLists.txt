@@ -11,7 +11,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # == PACKAGE VERSIONS ==
-set(PKGVER_FTXUI v5.0.0)
 set(PKGVER_JSON v3.12.0)
 set(PKGVER_LIBXML2 v2.15.0)
 set(PKGVER_SQLITE3 v3.50.2)
@@ -49,9 +48,6 @@ set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 set(FETCHCONTENT_QUIET OFF)
 
 # TVISION
-# add_subdirectory(deps/tvision)
-# deferred_link_libraries(PRIVATE tvision)
-
 FetchContent_Declare(tvision
   GIT_REPOSITORY https://github.com/magiblot/tvision.git
   GIT_TAG        ${PKGVER_TVISION}
@@ -62,21 +58,6 @@ FetchContent_Declare(tvision
 FetchContent_MakeAvailable(tvision)
 deferred_link_libraries(
   PRIVATE tvision
-)
-
-# FTXUI
-FetchContent_Declare(ftxui
-  GIT_REPOSITORY https://github.com/arthursonzogni/ftxui.git
-  GIT_TAG        ${PKGVER_FTXUI}
-  GIT_PROGRESS   TRUE
-  GIT_SHALLOW    TRUE
-  EXCLUDE_FROM_ALL
-)
-FetchContent_MakeAvailable(ftxui)
-deferred_link_libraries(
-  PRIVATE ftxui::screen
-  PRIVATE ftxui::dom
-  PRIVATE ftxui::component
 )
 
 # JSON
