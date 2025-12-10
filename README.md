@@ -7,11 +7,6 @@ Email-Client [is now on AUR](https://aur.archlinux.org/packages/email-client)!
 
 # Manual Build
 
-#### 0. Initialize submodules
-If this is your first clone of the repository (or after pulling new submodules):
-
-`git submodule update --init --recursive`
-
 #### 1. Create a build directory for the C++ project  
 `mkdir build && cd build`
 
@@ -27,10 +22,3 @@ If this is your first clone of the repository (or after pulling new submodules):
 
 If you have [`just`](https://just.systems) installed, you can also use the
 `build`, `run`, `buildrun` and `clean` recipes from the provided `Justfile`.
-
-# System Requirements
-Make sure the following tools are installed on your system:
-
-`sudo apt update`
-
-`sudo apt install build-essential cmake git libncursesw5-dev libgpm-dev`

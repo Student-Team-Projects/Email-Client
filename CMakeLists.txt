@@ -60,6 +60,9 @@ FetchContent_Declare(tvision
   EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(tvision)
+deferred_link_libraries(
+  PRIVATE tvision
+)
 
 # FTXUI
 FetchContent_Declare(ftxui
