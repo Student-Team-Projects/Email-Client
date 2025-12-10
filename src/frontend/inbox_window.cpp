@@ -1,5 +1,7 @@
 #include "inbox_window.hpp"
 #include "email_window.hpp"
+#include "app_theme.hpp"
+#include "commands.hpp"
 #include <sstream>
 
 class UnsortedStringCollection : public TStringCollection {
@@ -13,8 +15,6 @@ public:
     }
 };
 
-const ushort cmNewMail = 200;
-
 InboxWindow::InboxWindow(const TRect& bounds) :
     TWindow(bounds, "Inbox", wnNoNumber),
     TWindowInit(&InboxWindow::initFrame),
@@ -22,31 +22,39 @@ InboxWindow::InboxWindow(const TRect& bounds) :
 {
     initMockData();
 
-    TRect r = getExtent();
-    r.grow(-1, -1); // margines
+    int listW = size.x * 0.35;
+    int bottomMargin = 3;
+    int margin = 1;
 
-    //30% na listę, reszta na treść
-    int listWidth = r.b.x * 0.35;
+    TRect listArea(margin, margin, listW, size.y - bottomMargin);
     
-    TRect listRect = TRect(r.a.x, r.a.y, r.a.x + listWidth, r.b.y - 3);
-    contentRect    = TRect(r.a.x + listWidth + 1, r.a.y, r.b.x, r.b.y - 3);
-    TRect btnRect  = TRect(r.a.x, r.b.y - 2, r.a.x + 20, r.b.y);
+    TRect scrollRect = listArea;
+    scrollRect.a.x = listArea.b.x - 1;
+    
+    TRect listRect = listArea;
+    listRect.b.x -= 1;
 
-    TScrollBar* scrollBar = new TScrollBar(TRect(listRect.b.x - 1, listRect.a.y, listRect.b.x, listRect.b.y));
-    
-    listRect.b.x -= 1; // zmniejszam listę o pasek przewijania
+    contentRect = TRect(listW + 1, margin, size.x - margin, size.y - bottomMargin);
+
+    TScrollBar* scrollBar = new TScrollBar(scrollRect);
+    insert(scrollBar);
+
     list = new TListBox(listRect, 1, scrollBar);
     
     UnsortedStringCollection* items = new UnsortedStringCollection(emails.size(), 10);
     for (const auto& mail : emails) {
-        std::string label = mail.sender + ": " + mail.subject;
+        std::string label = "[ " + mail.sender + " ] " + mail.subject;
         items->insert(newStr(label.c_str()));
     }
     list->newList(items);
     insert(list);
-    insert(scrollBar);
 
-    insert(new TButton(btnRect, "New Email", cmNewMail, bfNormal));
+    int btnX = margin + 1;
+    int btnY = size.y - 2;
+    int btnW = 15;
+
+    insert(new TButton(TRect(btnX, btnY, btnX + btnW, btnY + 2), 
+                       "New Email", cmNewMail, bfNormal));
 
     if (!emails.empty()) {
         list->focusItem(0);
@@ -134,4 +142,9 @@ void InboxWindow::handleEvent(TEvent& event) {
     }
     
     TWindow::handleEvent(event);
+}
+
+TColorAttr InboxWindow::mapColor(uchar index) noexcept {
+    TColorAttr defaultColor = TWindow::mapColor(index);
+    return AppTheme::getColor(index, defaultColor);
 }

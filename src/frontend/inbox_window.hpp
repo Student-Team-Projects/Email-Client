@@ -35,4 +35,6 @@ private:
     void initMockData();
     void updateContent(int index);
     void openComposeWindow();
+
+    virtual TColorAttr mapColor(uchar) noexcept override;
 };
