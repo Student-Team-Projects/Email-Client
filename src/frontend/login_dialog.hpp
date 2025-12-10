@@ -6,6 +6,8 @@
 #define Uses_TListBox
 #define Uses_TScrollBar
 #define Uses_TStringCollection
+#define Uses_TProgram
+#define Uses_TDeskTop
 #include <tvision/tv.h>
 #include <nlohmann/json.hpp>
 #include <string>
