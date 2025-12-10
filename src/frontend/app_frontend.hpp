@@ -19,7 +19,6 @@ class Application;
 class Application_frontend : public TApplication {
 public:
     Application_frontend(Application& app);
-    void set_up_synchronization();
     void synchronize();
     void refresh_emails();
 

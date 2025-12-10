@@ -11,6 +11,7 @@ Application_frontend::Application_frontend(Application& app) :
 
 
 TStatusLine* Application_frontend::initStatusLine(TRect r){
+    logging::log("app_frontend_init_status_line");
     r.a.y = r.b.y-1;
     return new TStatusLine(r,
         *new TStatusDef(0, 0xFFFF) +
@@ -20,6 +21,7 @@ TStatusLine* Application_frontend::initStatusLine(TRect r){
 }
 
 void Application_frontend::run(){
+    logging::log("app_frontend_run");
     TRect r = deskTop->getExtent();
     r = r.grow(0,1);
 
@@ -27,9 +29,9 @@ void Application_frontend::run(){
     do{
         TDialog *dlg;
         if(status == cmLogin){
-            dlg = new LoginDialog(r);
+            dlg = new LoginDialog(r,app);
         } else if(status == cmNewAccount){
-            dlg = new NewAccountDialog(r);
+            dlg = new NewAccountDialog(r,app);
         }
         status = execView(dlg);
         destroy(dlg);
@@ -41,27 +43,11 @@ void Application_frontend::run(){
     } else loginSucceeded = false;
 }
 
-/** Start synchronizing the mailbox periodically.
- * Call this method once when user logs in to a mailbox, and then
- * the synchronization will be done with breaks of synch_time_in_seconds.
- */
-void Application_frontend::set_up_synchronization(){
-    std::thread synchronize_mailbox([this]{
-        while(true) {
-            app.synchronize();
-
-            std::unique_lock<std::mutex> lock(synch_m);
-            synch_cv.wait_for(lock, std::chrono::seconds(synch_time_in_seconds));
-        }
-    });
-
-    synchronize_mailbox.detach();
-}
-
 /** Synchronize the mailbox once.
  * Call this method when user requests to refresh the mailbox.
  */
 void Application_frontend::synchronize(){
+    logging::log("app_frontend_synchronize");
     synch_cv.notify_one();
 }
 

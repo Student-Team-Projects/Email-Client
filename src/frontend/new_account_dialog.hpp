@@ -13,6 +13,8 @@
 #include "logging/logging.hpp"
 
 class NewAccountDialog : public TDialog {
+    Application& app;
+
     TInputLine *user;
     TPasswordInputLine *pass;
 
@@ -23,7 +25,7 @@ class NewAccountDialog : public TDialog {
     virtual void handleEvent(TEvent& event) override;
 
 public:
-    NewAccountDialog(TRect r);
+    NewAccountDialog(TRect r, Application& app);
     std::string username() const;
     std::string password() const;
 };
