@@ -1,3 +1,5 @@
+#include "app.hpp"
+#include "backend/mail_types.h"
 #define Uses_TWindow
 #define Uses_TInputLine
 #define Uses_TEditor
@@ -12,28 +14,25 @@
 #include <tvision/tv.h>
 #include <vector>
 
-struct MockEmail {
-    std::string sender;
-    std::string subject;
-    std::string body;
-};
-
 class InboxWindow : public TWindow {
 public:
-    InboxWindow(const TRect& bounds);
+    InboxWindow(const TRect& bounds, Application& app);
     virtual ~InboxWindow();
 
     virtual void handleEvent(TEvent& event) override;
 
 private:
+    Application& app;
     TListBox* list;
     TView* currentContentView;
-    TRect contentRect; 
-    
-    std::vector<MockEmail> emails; // testowe dane 
+    TRect contentRect;
 
-    void initMockData();
+    std::vector<Folder> mailData;
+    const Folder* currentFolder;
+
+    void fetchMailData();
     void updateContent(int index);
+    void setFolder(int index);
     void openComposeWindow();
 
     virtual TColorAttr mapColor(uchar) noexcept override;

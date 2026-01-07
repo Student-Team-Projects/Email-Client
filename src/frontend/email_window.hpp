@@ -1,3 +1,4 @@
+#include "app.hpp"
 #define Uses_TWindow
 #define Uses_TInputLine
 #define Uses_TEditor
@@ -8,6 +9,8 @@
 
 
 class EmailWindow : public TWindow {
+    Application& app;
+
     TInputLine *toField;
     TInputLine *fromField;
     TInputLine *subjectField;
@@ -17,6 +20,6 @@ class EmailWindow : public TWindow {
     virtual TColorAttr mapColor(uchar index) noexcept override;
 
 public:
-    EmailWindow(const TRect &bounds);
+    EmailWindow(const TRect &bounds, Application& app);
     virtual void handleEvent(TEvent& event) override;
 };

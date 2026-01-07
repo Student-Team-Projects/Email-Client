@@ -7,7 +7,7 @@
 Application_frontend::Application_frontend(Application& app) :
     TProgInit(&Application_frontend::initStatusLine, &Application_frontend::initMenuBar, &Application_frontend::initDeskTop),
     app(app), loginSucceeded(false){
-    deskTop->insert(new EmailWindow(deskTop->getExtent()));
+    deskTop->insert(new EmailWindow(deskTop->getExtent(), app));
 }
 
 
@@ -42,10 +42,10 @@ void Application_frontend::run(){
         loginSucceeded = true;
 
         TRect r = deskTop->getExtent();
-        InboxWindow* inbox = new InboxWindow(r);
+        InboxWindow* inbox = new InboxWindow(r, app);
         deskTop->insert(inbox);
         TApplication::run();
-        
+
     } else loginSucceeded = false;
 }
 
