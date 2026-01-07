@@ -7,5 +7,4 @@ struct Account {
     std::string password;
     std::string smtpHost;
     std::string imapHost;
-    std::string certPath;
 };

@@ -165,7 +165,6 @@ Mailbox Application::get_current_mailbox()
     account.password = (*user)["password"];
     account.smtpHost = (*user)["smtpHost"];
     account.imapHost = (*user)["imapHost"];
-    account.certPath = (*user).value("certPath", "/etc/ssl/cert.pem");
 
     return Mailbox(account);
 }
