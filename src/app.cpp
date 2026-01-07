@@ -3,7 +3,7 @@
 #include "backend/mail_types.h"
 #include "backend/mailbox.h"
 #include <memory>
-#include <algorithm> 
+#include <algorithm>
 
 #include <iostream>
 #include <fstream>
@@ -22,7 +22,7 @@ namespace{
 
         if(needs_init){
             std::ofstream config_file_new(Application::get_config_path());
-            config_file_new << "[]" << std::endl; 
+            config_file_new << "[]" << std::endl;
             config_file_new.close();
         }
     }
@@ -64,30 +64,8 @@ void Application::send_email(const MessageToSend& email){
         return;
     }
 
-    std::ifstream configFile(get_config_path());
-    if (!configFile){
-        logging::log("Failed to open config.json");
-        return;
-    }
+    Mailbox mailbox = get_current_mailbox();
 
-    logging::log("managed to open config.json");
-
-    nlohmann::json config;
-    configFile >> config;
-
-    std::string senderEmail = current_email_address;
-    std::string appPassword = "";
-    
-    auto user = std::find_if(config.begin(), config.end(), [&](const auto& v){
-        return v["sender_email"] == current_email_address;
-    });
-    if(user == config.end()){
-        logging::log("No app password provided for the current email address!");
-        return;
-    }
-    appPassword = (std::string)(*user)["app_password"];
-
-    Mailbox mailbox(senderEmail, appPassword);
     mailbox.send(email);
     logging::log("email sent");
 }
@@ -156,7 +134,7 @@ std::string Application::get_current_email_address(){
     return current_email_address;
 }
 
-Application::Application() 
+Application::Application()
 :   current_state(State::INVALID)
 {
     setup_config_file();
@@ -174,17 +152,20 @@ Mailbox Application::get_current_mailbox()
     nlohmann::json config;
     configFile >> config;
 
-    std::string senderEmail = current_email_address;
-    std::string appPassword = "";
-    
+    Account account;
+    account.username = current_email_address;
+
     auto user = std::find_if(config.begin(), config.end(), [&](const auto& v){
-        return v["sender_email"] == current_email_address;
+        return v["username"] == account.username;
     });
-    if(user == config.end()){
+    if(user == config.end()) {
         // We have to handle this more gracefully
         throw std::runtime_error("No app password provided for the current email address!");
     }
-    appPassword = (*user)["app_password"];
+    account.password = (*user)["password"];
+    account.smtpHost = (*user)["smtpHost"];
+    account.imapHost = (*user)["imapHost"];
+    account.certPath = (*user).value("certPath", "/etc/ssl/cert.pem");
 
-    return Mailbox(senderEmail, appPassword);
+    return Mailbox(account);
 }

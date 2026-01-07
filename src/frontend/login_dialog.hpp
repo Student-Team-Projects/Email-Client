@@ -1,3 +1,4 @@
+#include "backend/account.h"
 #define Uses_TDialog
 #define Uses_TInputLine
 #define Uses_TLabel
@@ -23,7 +24,7 @@ class LoginDialog : public TDialog {
 
     TListBox *list;
 
-    std::vector<std::pair<std::string, std::string>> get_accounts();
+    std::vector<Account> get_accounts();
 
     virtual TColorAttr mapColor(uchar) noexcept override;
 
