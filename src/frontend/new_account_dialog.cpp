@@ -51,7 +51,16 @@ NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
     strcpy(imapHost->data, "imaps://imap.gmail.com:993");
     insert(imapHost);
 
+    y += 1;
+
+    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "SSL Cert Path:", this));
+    certPath = new TInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 40);
+    strcpy(certPath->data, DEFAULT_CERT);
+    insert(certPath);
+
+
     y += 2;
+
 
     insert(new TButton(TRect(rowBtnX, y, rowBtnX + wCreate, y + 2),
                        "~C~reate", cmOK, bfDefault));
@@ -76,7 +85,7 @@ Account NewAccountDialog::account() const {
     account.password = pass->data;
     account.smtpHost = smtpHost->data;
     account.imapHost = imapHost->data;
-    account.certPath = DEFAULT_CERT;
+    account.certPath = certPath->data;
     return account;
 }
 

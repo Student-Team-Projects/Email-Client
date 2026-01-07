@@ -19,6 +19,7 @@ class NewAccountDialog : public TDialog {
     TPasswordInputLine *pass;
     TInputLine *smtpHost;
     TInputLine *imapHost;
+    TInputLine *certPath;
 
     void add_account(const Account& new_account);
 
