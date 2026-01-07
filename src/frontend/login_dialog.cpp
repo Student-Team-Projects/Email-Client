@@ -1,5 +1,6 @@
 #include "login_dialog.hpp"
 #include "app_theme.hpp"
+#include "account_helper.hpp"
 
 LoginDialog::LoginDialog(TRect r, Application& app) :
     TDialog(r, "Login"),
@@ -20,10 +21,10 @@ LoginDialog::LoginDialog(TRect r, Application& app) :
 
     TRect listRect(marginX, topY, size.x - marginX - 1, bottomY);
     list = new TListBox(listRect, 1, listScroll);
-    
-    TStringCollection *accountStrings = new TStringCollection(10, 10); 
+
+    TStringCollection *accountStrings = new TStringCollection(10, 10);
     for (const auto& account : get_accounts()) {
-        char* copy = newStr(account.first.c_str()); // newStr to bezpieczna funkcja TVision
+        char* copy = newStr(account.username.c_str()); // newStr to bezpieczna funkcja TVision
         accountStrings->insert(copy);
     }
     list->newList(accountStrings);
@@ -31,24 +32,24 @@ LoginDialog::LoginDialog(TRect r, Application& app) :
 
     int btnY = size.y - 3;
     int btnGap = 2;
-    
+
     int wChoose = 12;
     int wCancel = 12;
     int wNew    = 16;
-    
+
     int totalBtnWidth = wChoose + wCancel + wNew + (2 * btnGap);
-    
+
     int startX = (size.x - totalBtnWidth) / 2;
 
-    insert(new TButton(TRect(startX, btnY, startX + wChoose, btnY + 2), 
+    insert(new TButton(TRect(startX, btnY, startX + wChoose, btnY + 2),
                        "~C~hoose", cmOK, bfDefault));
     startX += wChoose + btnGap;
 
-    insert(new TButton(TRect(startX, btnY, startX + wNew, btnY + 2), 
+    insert(new TButton(TRect(startX, btnY, startX + wNew, btnY + 2),
                        "~N~ew account", cmNewAccount, bfNormal));
     startX += wNew + btnGap;
 
-    insert(new TButton(TRect(startX, btnY, startX + wCancel, btnY + 2), 
+    insert(new TButton(TRect(startX, btnY, startX + wCancel, btnY + 2),
                        "Exit", cmCancel, bfNormal));
 }
 
@@ -76,18 +77,18 @@ void LoginDialog::handleEvent(TEvent& event){
     TDialog::handleEvent(event);
 }
 
-std::vector<std::pair<std::string, std::string>> LoginDialog::get_accounts(){
+std::vector<Account> LoginDialog::get_accounts(){
     std::ifstream configFile(Application::get_config_path());
-    if (!configFile){ 
+    if (!configFile){
         logging::log("Failed to open config.json");
     }
 
     nlohmann::json config;
     configFile >> config;
 
-    std::vector<std::pair<std::string, std::string>> emails_passwords;
-    for(auto& account : config){
-        emails_passwords.push_back({std::string(account["sender_email"]), std::string(account["app_password"])});
+    std::vector<Account> emails_passwords;
+    for(auto& account : config) {
+        emails_passwords.push_back(accountFromJson(account));
     }
 
     return emails_passwords;

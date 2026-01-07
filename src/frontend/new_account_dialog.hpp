@@ -17,8 +17,10 @@ class NewAccountDialog : public TDialog {
 
     TInputLine *user;
     TPasswordInputLine *pass;
+    TInputLine *smtpHost;
+    TInputLine *imapHost;
 
-    void add_account(const std::pair<std::string, std::string>& new_account);
+    void add_account(const Account& new_account);
 
     virtual TColorAttr mapColor(uchar) noexcept override;
 
@@ -26,6 +28,5 @@ class NewAccountDialog : public TDialog {
 
 public:
     NewAccountDialog(TRect r, Application& app);
-    std::string username() const;
-    std::string password() const;
+    Account account() const;
 };

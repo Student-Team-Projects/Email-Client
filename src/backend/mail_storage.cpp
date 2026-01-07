@@ -64,9 +64,9 @@ sqlite3 *open_db(const std::string &email) noexcept
   return db;
 }
 
-std::size_t MailStorage::get_mail_count(const std::string &email) noexcept
+std::size_t MailStorage::get_mail_count(const Account& account) noexcept
 {
-  sqlite3* db = open_db(email);
+  sqlite3* db = open_db(account.username);
 
   sqlite3_stmt* stmt;
   const char* sql = "SELECT COUNT(*) FROM MailHeaders;";
@@ -117,44 +117,44 @@ bool save_emails(std::vector<Folder>& emails, sqlite3* db) {
   return true;
 }
 
-std::shared_ptr<vmime::net::store> get_store(const std::string &email, const std::string &password)
+std::shared_ptr<vmime::net::store> get_store(const Account& account)
 {
-  vmime::utility::url url("imaps://imap.gmail.com:993");
+  vmime::utility::url url(account.imapHost);
   vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
 
   vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
-  verifier->loadRootCertificates("/etc/ssl/cert.pem");
+  verifier->loadRootCertificates(account.certPath);
 
   vmime::shared_ptr<vmime::net::store> store = session->getStore(url);
   store->setCertificateVerifier(verifier);
 
   store->setProperty("options.need-authentication", true);
-  store->setProperty("auth.username", email);
-  store->setProperty("auth.password", password);
+  store->setProperty("auth.username", account.username);
+  store->setProperty("auth.password", account.password);
 
   return store;
 }
 
-std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, const std::string &password) noexcept
+std::pair<std::vector<Folder>, bool> fetch_emails(const Account& account) noexcept
 {
   std::vector<Folder> folders;
 
   try {
-    vmime::shared_ptr<vmime::net::store> store = get_store(email, password);
+    vmime::shared_ptr<vmime::net::store> store = get_store(account);
 
     // Connect to the IMAP server
     store->connect();
 
     std::size_t count = 0;
-    
+
     auto root_folder = store->getRootFolder();
     for(auto& folder : root_folder->getFolders(true)) {
       auto flag_no_open = folder->getAttributes().getFlags() & vmime::net::folderAttributes::Flags::FLAG_NO_OPEN;
-      
+
       if (flag_no_open) {
         continue;
       }
-      
+
       std::vector<MessageHeader> emails;
 
       // Open the folder
@@ -229,12 +229,12 @@ std::pair<std::vector<Folder>, bool> fetch_emails(const std::string &email, cons
   return {folders, true};
 }
 
-bool MailStorage::synchronize(const std::string &email, const std::string &password) noexcept
+bool MailStorage::synchronize(const Account& account) noexcept
 {
   // Fetch emails before deleting
-  auto [emails, status] = fetch_emails(email, password);
+  auto [emails, status] = fetch_emails(account);
 
-  sqlite3* db = open_db(email);
+  sqlite3* db = open_db(account.username);
 
   const char* sql = "DELETE FROM MailHeaders;";
   char* err_msg = nullptr;
@@ -250,7 +250,7 @@ bool MailStorage::synchronize(const std::string &email, const std::string &passw
     sqlite3_close(db);
     return false;
   }
-  
+
   sqlite3_close(db);
   return true;
 }
@@ -302,16 +302,15 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
   return folders;
 }
 
-std::vector<Folder> MailStorage::get_email_headers(const std::string &email) noexcept
+std::vector<Folder> MailStorage::get_email_headers(const Account& account) noexcept
 {
-  return load_emails(email);
+  return load_emails(account.username);
 }
 
-std::string MailStorage::get_email_body(const std::string& uid, const std::string& folder_path, 
-                            const std::string& email, const std::string& password) noexcept
+std::string MailStorage::get_email_body(const Account& account, const std::string& uid, const std::string& folder_path) noexcept
 {
   try{
-    std::shared_ptr<vmime::net::store> store = get_store(email, password);
+    std::shared_ptr<vmime::net::store> store = get_store(account);
 
     // Connect to the IMAP server
     store->connect();
@@ -341,7 +340,7 @@ std::string MailStorage::get_email_body(const std::string& uid, const std::strin
 		for (size_t i = 0 ; i < mp.getTextPartCount() ; ++i) {
 
 			const vmime::textPart& part = *mp.getTextPartAt(i);
-    
+
       if (part.getType().getSubType() == vmime::mediaTypes::TEXT_PLAIN) {
         const vmime::textPart& tp = dynamic_cast<const vmime::textPart&>(part);
         vmime::utility::outputStreamStringAdapter textStream(body);
