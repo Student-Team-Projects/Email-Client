@@ -47,6 +47,8 @@ void Mailbox::send(const MessageToSend &message) noexcept
     transport->connect();
     transport->send(mb.construct());
     transport->disconnect();
+
+    MailStorage::save_sent_email(message, account.username);
   }
   catch (vmime::exception& e) {
     logging::log("Error sending email: " + (std::string)e.what());

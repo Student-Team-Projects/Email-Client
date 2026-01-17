@@ -6,11 +6,13 @@
 
 #include <iostream>
 #include <filesystem>
+#include <string>
 #include <vector>
 #include <cassert>
 
 #include <vmime/vmime.hpp>
 #include "logging/logging.hpp"
+#include "mail_types.h"
 
 std::filesystem::path get_db_path(const std::string &email) noexcept
 {
@@ -28,7 +30,15 @@ void init_db(sqlite3* db) noexcept
                     "Subject TEXT NOT NULL,"
                     "Recipient TEXT,"
                     "UID TEXT NOT NULL,"
-                    "Folder TEXT NOT NULL);";
+                    "Folder TEXT NOT NULL);"
+                    ""
+                    "CREATE TABLE SentEmails ("
+                    "ID INTEGER PRIMARY KEY,"
+                    "Sender TEXT NOT NULL,"
+                    "Subject TEXT NOT NULL,"
+                    "Recipient TEXT,"
+                    "Content TEXT NOT NULL"
+                    ");";
 
   int rc = sqlite3_exec(db, sql, nullptr, nullptr, &err_msg);
   if (rc != SQLITE_OK) {
@@ -311,15 +321,70 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
   return folders;
 }
 
+Folder MailStorage::get_sent_emails(const std::string &email) noexcept {
+    logging::log("mail_storage_get_sent_emails");
+
+    sqlite3* db = open_db(email);
+    sqlite3_stmt* stmt;
+    const char* sql = "SELECT Sender, Subject, ID, Recipient FROM SentEmails;";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+      logging::log("Failed to prepare statement: " +(std::string)sqlite3_errmsg(db));
+      return Folder{"Sent", {}};
+    }
+
+    std::vector<MessageHeader> res;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      const char* sender = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+      const char* subject = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+      const char* uid = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+      const char* recipient = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+
+      res.push_back(MessageHeader{recipient, sender, subject, uid, "Sent"});
+    }
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+    return Folder{"Sent", res};
+}
+
 std::vector<Folder> MailStorage::get_email_headers(const Account& account) noexcept
 {
   logging::log("mail_storage_get_email_headers");
-  return load_emails(account.username);
+  auto res = load_emails(account.username);
+  res.push_back(get_sent_emails(account.username));
+  return res;
+}
+
+std::string MailStorage::get_sent_email_body(const std::string &email, const std::string &id) noexcept {
+    logging::log("mail_storage_get_sent_email_body");
+
+    sqlite3* db = open_db(email);
+    sqlite3_stmt* stmt;
+    const char* sql = "SELECT Content FROM SentEmails WHERE ID = ?;";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+      logging::log("Failed to prepare statement: " +(std::string)sqlite3_errmsg(db));
+      return "";
+    }
+
+    sqlite3_bind_text(stmt, 1, id.c_str(), -1, SQLITE_STATIC);
+
+    std::string res = "";
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      const char* content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+      res = content;
+    }
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+    return res;
 }
 
 std::string MailStorage::get_email_body(const Account& account, const std::string& uid, const std::string& folder_path) noexcept
 {
   logging::log("mail_storage_get_email_body");
+
+  if (folder_path == "Sent") return get_sent_email_body(account.username, uid);
+
   try{
     std::shared_ptr<vmime::net::store> store = get_store(account);
 
@@ -374,4 +439,29 @@ std::string MailStorage::get_email_body(const Account& account, const std::strin
     logging::log("General error: " + (std::string)e.what());
     return "";
   }
+}
+
+bool MailStorage::save_sent_email(const MessageToSend &message, const std::string &email) noexcept {
+    logging::log("mail_storage_save_sent_email");
+    sqlite3* db = open_db(email);
+
+    sqlite3_stmt* stmt;
+    const char* sql = "INSERT INTO SentEmails (Sender, Subject, Recipient, Content) VALUES (?, ?, ?, ?);";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+      logging::log("Failed to prepare statement: " +(std::string)sqlite3_errmsg(db));
+      return false;
+    }
+
+    sqlite3_bind_text(stmt, 1, email.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, message.subject.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, message.recipient.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 4, message.body.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        logging::log("Failed to step: " + (std::string)sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return false;
+    }
+    sqlite3_finalize(stmt);
+    return true;
 }
