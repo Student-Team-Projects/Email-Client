@@ -15,11 +15,14 @@ set(PKGVER_JSON v3.12.0)
 set(PKGVER_LIBXML2 v2.15.0)
 set(PKGVER_SQLITE3 v3.50.2)
 set(PKGVER_VMIME 7046a4360bbeea21d1d8b5cfa4589bb4df7f980d)
-set(PKGVER_TVISION 423aeb568a181ffebb3695859654385950588a93)
+set(PKGVER_TVISION 85aaeca0999c8b53006c556ccda063f143d259ca)
 
 option(ENABLE_LOG "Enable logging" OFF)
 
 option(EXTERNAL_VMIME "If OFF, then build VMime and link to it for development" OFF)
+# NOTE: Other libraries are not treated as possibly external and always fetched.
+# This simplifies builds, version pinning and they are relatively small compared to the others regardless
+# Also the AUR has some of these packages with very outdated versions at the time of writing this note.
 
 if(ENABLE_LOG)
   add_definitions(-DLOG)
