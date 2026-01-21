@@ -1,0 +1,69 @@
+# Please report maintenance problems to the project GitHub issue tracker
+#   i.e. https://github.com/Student-Team-Projects/email-client/issues
+
+pkgname=email-client
+pkgver=2.0.0
+pkgrel=1
+pkgdesc="A CLI email client for Arch Linux"
+arch=('x86_64')
+url="https://github.com/Student-Team-Projects/email-client"
+license=('GPL3')
+
+# Runtime Dependencies
+depends=(
+  'gcc-libs'
+  'openssl'
+  'icu'
+  'gnutls'
+  'ncurses'
+  'libffi'
+  'sqlite'
+  'libxml2'
+
+  # AUR – skips having to install it by hand just for us
+  'vmime'
+)
+
+# Build Dependencies
+makedepends=(
+  'base-devel'
+  'cmake'
+  'make'
+  'gcc'
+  'git'
+  'pkgconf'
+)
+
+# Sources and Checksums
+# WARN: PIN THESE BACK BEFORE PUSHING PKGBUILD TO AUR
+# source=("https://github.com/Student-Team-Projects/Email-Client/archive/refs/tags/${pkgver}.tar.gz")
+# sha256sums=('TODO!')
+
+source=("http://127.0.0.1:8000/${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$srcdir" || exit 1
+  tar xzvf "${pkgver}.tar.gz"
+}
+
+build() {
+  cd "$srcdir" || exit 1
+  mkdir -p build
+  cd build || exit 1
+
+  cmake -DCMAKE_BUILD_TYPE=Release \
+    -DEXTERNAL_SQLITE=ON \
+    -DEXTERNAL_LIBXML2=ON \
+    -DEXTERNAL_VMIME=ON ..
+  make
+}
+
+package() {
+  cd "$srcdir/build" || exit 1
+
+  # Install the email client binary
+  install -Dm755 "email_client" "$pkgdir/usr/bin/email_client"
+
+  # TODO: Consider adding manpages (e.g via scdoc ;)
+}
