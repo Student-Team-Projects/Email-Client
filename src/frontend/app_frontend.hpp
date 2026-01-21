@@ -1,37 +1,36 @@
 #pragma once
-#include "ftxui/component/screen_interactive.hpp"
-#include "ftxui/component/component.hpp"
-#include "backend/mailbox.h"
-#include "frontend/log_in.hpp"
 #include "app.hpp"
-#include "email_draft_layout.hpp"
-#include "folder_menu.hpp"
+#include "commands.hpp"
+#include <thread>
+#include <condition_variable>
+
+#define Uses_TApplication
+#define Uses_TStatusDef
+#define Uses_TStatusItem
+#define Uses_TKeys
+#define Uses_TStatusLine
+#define Uses_TDeskTop
+#include <tvision/tv.h>
 
 class Application;
 /*
 * Main frontend class contains layouts, and classes wrapping the layouts and synchronization logic.
 */
-class Application_frontend{
+class Application_frontend : public TApplication {
 public:
     Application_frontend(Application& app);
-    void loop();
-    void set_up_synchronization();
     void synchronize();
     void refresh_emails();
+
+    virtual void run() override;
+
+    bool loginSucceeded;
+
 private:
     void set_email_body_dim(bool value);
+    static TStatusLine* initStatusLine(TRect T);
 
     Application& app;
-    log_in::Log_in_data log_in;
-    std::vector<Folder> folder_vector;
-    DisplayMessage current_email;
-    Folder current_folder;
-    Email_draft_layout email_draft_layout;
-    ftxui::Component email_layout;
-    ftxui::Component email_layout_body;
-    ftxui::Component layout;
-    ftxui::ScreenInteractive screen;
-    Folder_menu folder_menu;
 
     std::condition_variable synch_cv;
     std::mutex synch_m;

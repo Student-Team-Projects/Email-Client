@@ -10,17 +10,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(BUILD_SHARED_LIBS ON)
+
 # == PACKAGE VERSIONS ==
-set(PKGVER_FTXUI v5.0.0)
 set(PKGVER_JSON v3.12.0)
 set(PKGVER_LIBXML2 v2.15.0)
 set(PKGVER_SQLITE3 v3.50.2)
 set(PKGVER_VMIME 7046a4360bbeea21d1d8b5cfa4589bb4df7f980d)
-set(PKGVER_TVISION 423aeb568a181ffebb3695859654385950588a93)
+set(PKGVER_TVISION 85aaeca0999c8b53006c556ccda063f143d259ca)
 
 option(ENABLE_LOG "Enable logging" OFF)
 
 option(EXTERNAL_VMIME "If OFF, then build VMime and link to it for development" OFF)
+option(EXTERNAL_SQLITE "If OFF, then build SQLite3 and link to it for development" OFF)
+option(EXTERNAL_LIBXML2 "If OFF, then build LibXml2 and link to it for development" OFF)
 
 if(ENABLE_LOG)
   add_definitions(-DLOG)
@@ -49,9 +52,6 @@ set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
 set(FETCHCONTENT_QUIET OFF)
 
 # TVISION
-# add_subdirectory(deps/tvision)
-# deferred_link_libraries(PRIVATE tvision)
-
 FetchContent_Declare(tvision
   GIT_REPOSITORY https://github.com/magiblot/tvision.git
   GIT_TAG        ${PKGVER_TVISION}
@@ -60,28 +60,13 @@ FetchContent_Declare(tvision
   EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(tvision)
-
-# FTXUI
-FetchContent_Declare(ftxui
-  GIT_REPOSITORY https://github.com/arthursonzogni/ftxui.git
-  GIT_TAG        ${PKGVER_FTXUI}
-  GIT_PROGRESS   TRUE
-  GIT_SHALLOW    TRUE
-  EXCLUDE_FROM_ALL
-)
-FetchContent_MakeAvailable(ftxui)
 deferred_link_libraries(
-  PRIVATE ftxui::screen
-  PRIVATE ftxui::dom
-  PRIVATE ftxui::component
+  PRIVATE tvision
 )
 
 # JSON
 FetchContent_Declare(nlohmann_json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG        ${PKGVER_JSON}
-  GIT_PROGRESS TRUE
-  GIT_SHALLOW TRUE
+  URL https://github.com/nlohmann/json/releases/download/${PKGVER_JSON}/json.tar.xz
   EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(nlohmann_json)
@@ -91,13 +76,14 @@ deferred_link_libraries(
 
 # libxml2
 FetchContent_Declare(libxml2
-  GIT_REPOSITORY https://github.com/GNOME/libxml2.git
-  GIT_TAG        ${PKGVER_LIBXML2}
-  GIT_PROGRESS TRUE
-  GIT_SHALLOW TRUE
+  URL https://github.com/GNOME/libxml2/archive/refs/tags/${PKGVER_LIBXML2}.tar.gz
   EXCLUDE_FROM_ALL
 )
-FetchContent_MakeAvailable(libxml2)
+if (NOT EXTERNAL_LIBXML2)
+  FetchContent_MakeAvailable(libxml2)
+else()
+  find_package(libxml2 REQUIRED)
+endif()
 deferred_link_libraries(
   LibXml2::LibXml2
 )
@@ -110,7 +96,11 @@ FetchContent_Declare(sqlite3
   GIT_SHALLOW TRUE
   EXCLUDE_FROM_ALL
 )
-FetchContent_MakeAvailable(sqlite3)
+if (NOT EXTERNAL_SQLITE)
+  FetchContent_MakeAvailable(sqlite3)
+else()
+  find_package(SQLite3 REQUIRED)
+endif()
 deferred_link_libraries(
   PRIVATE SQLite::SQLite3
 )
@@ -130,6 +120,7 @@ if(NOT EXTERNAL_VMIME)
   GIT_SHALLOW TRUE
   PREFIX ${VMIME_INSTALL_DIR}
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${VMIME_INSTALL_DIR}
+    -DCMAKE_BUILD_TYPE=Release
     -DVMIME_HAVE_MESSAGING_PROTO_SENDMAIL=OFF
 # ^ above requires the sendmail util. we don't need it for now, so let's minimize deps while we can.
     -DVMIME_HAVE_SASL_SUPPORT=OFF
@@ -140,6 +131,8 @@ if(NOT EXTERNAL_VMIME)
 # ^ this also fails due to some doxygen issues, but it's not a big deal.
     -DVMIME_BUILD_STATIC_LIBRARY=OFF
     -DVMIME_BUILD_SHARED_LIBRARY=ON
+# ^ NOTE: As much as I'd like to link statically, I gave up after fighting w/ the archaic VMime CMake for ~6 hours, 
+#       we just live with the fact that vmime must be linked dynamically
   )
   deferred_include_directories(${VMIME_INSTALL_DIR}/include)
   deferred_link_directories(${VMIME_INSTALL_DIR}/lib)
@@ -150,7 +143,7 @@ else()
   find_package(vmime REQUIRED)
   deferred_include_directories(${vmime_INCLUDE_DIRS})
   deferred_link_libraries(
-    ${VMIME_LIBRARIES}
+    -lvmime ${VMIME_LIBRARIES}
   )
 endif()
 
