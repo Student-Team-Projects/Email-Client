@@ -13,3 +13,4 @@
 - Save sent mails to the 'Sent' folder via IMAP
 - Folder selection (probably in the upper-bar)
 - Drafts (edition & saving)
+- IMAP/SMTP server detection via DNS/SRV records
