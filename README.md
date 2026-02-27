@@ -1,6 +1,6 @@
 # Terminal Email Client
 
-An email client for terminal users.
+An email client for terminal users. Currently, it supports sending emails via any IMAP/SMTP server and retrieving received emails from the server.
 
 ## Usage
 
