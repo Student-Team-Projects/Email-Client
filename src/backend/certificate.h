@@ -1,42 +1,37 @@
 #pragma once
 
 #include <vmime/vmime.hpp>
+#include <cstdlib>
 #include <fstream>
+#include <stdexcept>
+#include <string>
 #include "logging/logging.hpp"
 
 class certificateVerifier : public vmime::security::cert::defaultCertificateVerifier {
 public:
-    void verify(const vmime::shared_ptr<vmime::security::cert::certificateChain>& chain,
-                const vmime::string& hostname) override {
-        logging::log("certficateVerifier_verify");
-        try {
-            setX509TrustedCerts(m_trustedCerts);
-            defaultCertificateVerifier::verify(chain, hostname);
-        } catch (vmime::security::cert::certificateException&) {
-            vmime::shared_ptr<vmime::security::cert::certificate> cert = chain->getAt(0);
-            if (cert->getType() == "X.509") {
-                m_trustedCerts.push_back(vmime::dynamicCast<vmime::security::cert::X509Certificate>(cert));
-                setX509TrustedCerts(m_trustedCerts);
-                defaultCertificateVerifier::verify(chain, hostname);
-            }
-        }
-    }
-
     void loadRootCertificates() {
         logging::log("load_root_certificates");
         std::ifstream certFile;
-        for(auto& path:defaultPaths) {
+        // Same override as OpenSSL/curl, used by dev/mail-server.sh to trust the dev CA
+        if (const char* envPath = std::getenv("SSL_CERT_FILE")) {
+            certFile = std::ifstream(envPath, std::ios::binary);
+            if (!certFile) throw std::runtime_error(std::string("Failed to open SSL_CERT_FILE: ") + envPath);
+        }
+        else for(auto& path:defaultPaths) {
             certFile = std::ifstream(path, std::ios::binary);
             if(certFile) break;
         }
         if (!certFile) throw std::runtime_error("Failed to open certificate file");
+
+        std::vector<vmime::shared_ptr<vmime::security::cert::X509Certificate>> rootCAs;
         vmime::utility::inputStreamAdapter is(certFile);
-        vmime::security::cert::X509Certificate::import(is, m_trustedCerts);
+        vmime::security::cert::X509Certificate::import(is, rootCAs);
+        // Root CAs are trusted to issue server certificates. (setX509TrustedCerts
+        // would only accept a server whose own certificate is on the list.)
+        setX509RootCAs(rootCAs);
     }
 
 private:
-    std::vector<vmime::shared_ptr<vmime::security::cert::X509Certificate>> m_trustedCerts;
-
     std::vector<std::string> defaultPaths = {
         "/etc/ssl/cert.pem", // alpine
         "/etc/ssl/certs/ca-certificates.crt", // ubuntu, debian
@@ -44,3 +39,15 @@ private:
         "/etc/ssl/ca-bundle.pem" // opensuse
     };
 };
+
+// Makes the service verify server certificates and never send credentials in plain text:
+// imaps:// and smtps:// use TLS from the start, imap:// and smtp:// must upgrade with STARTTLS.
+inline void setupTls(const vmime::shared_ptr<vmime::net::service>& service) {
+    logging::log("setup_tls");
+    vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
+    verifier->loadRootCertificates();
+    service->setCertificateVerifier(verifier);
+
+    service->setProperty("connection.tls", true);
+    service->setProperty("connection.tls.required", true);
+}
