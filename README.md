@@ -62,12 +62,6 @@ Run `dev/mail-server.sh` without arguments to see all commands. With `just`:
 - GreenMail keeps mail in memory only, so stopping the server clears all
   mailboxes.
 
-### Custom CA certificates
-
-By default the client trusts the system CA bundle. To use a different bundle
-(e.g. with a company CA or a local bridge), point `SSL_CERT_FILE` at a PEM file.
-It replaces the system bundle, so include the system CAs if you still need them.
-
 ## License
 
 This project is licensed under the GNU GPL version 3 (or later). See the
