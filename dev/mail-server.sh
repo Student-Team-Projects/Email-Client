@@ -11,7 +11,8 @@
 #   status               show whether the server is running
 #   logs                 follow server logs
 #   send [to] [subject]  send a test mail from bob (default: to alice@localhost)
-#   run [args...]        run ./build/email_client against the server, with a separate config
+#   run [args...]        run ./build/email_client against the server (starts it if needed),
+#                        with a separate config
 #   reset                remove the client config and cache used by `run`
 #   certs                regenerate certificates
 
@@ -180,7 +181,7 @@ write_client_config() {
 cmd_run() {
   local bin="$ROOT_DIR/build/email_client"
   [[ -x "$bin" ]] || die "$bin not found, build it first: just build"
-  is_running || die "server is not running, start it with: $0 up"
+  is_running || cmd_up
   write_client_config
   XDG_CONFIG_HOME="$STATE_DIR/config" XDG_DATA_HOME="$STATE_DIR/data" \
     SSL_CERT_FILE="$CERT_DIR/ca-bundle.pem" exec "$bin" "$@"
@@ -200,5 +201,5 @@ case "${1:-}" in
   run)    shift; cmd_run "$@" ;;
   reset)  cmd_reset ;;
   certs)  gen_certs ;;
-  *)      sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *)      sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

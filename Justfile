@@ -6,6 +6,7 @@ buildrun:
   just build
   just run
 
+# Run the client with your real config and the system CA certificates
 run:
   ./build/email_client
 
@@ -22,6 +23,7 @@ mail-down:
 mail-send *args:
   ./dev/mail-server.sh send {{args}}
 
-# Run the client against the local test mail server, with a separate config
+# Run the client against the local test mail server (started if needed),
+# with a separate config and the dev CA
 dev-run:
   ./dev/mail-server.sh run
