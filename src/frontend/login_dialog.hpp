@@ -30,6 +30,8 @@ class LoginDialog : public TDialog {
 
     virtual void handleEvent(TEvent& event) override;
 
+    virtual Boolean valid(ushort command) override;
+
 public:
     LoginDialog(TRect r, Application& app);;
     std::string username() const;

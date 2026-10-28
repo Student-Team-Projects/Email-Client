@@ -54,8 +54,9 @@ LoginDialog::LoginDialog(TRect r, Application& app) :
 }
 
 std::string LoginDialog::username() const {
-    if(list->focused == -1) return "";
-
+    if(list == nullptr || list->range == 0 || list->focused < 0 || list->focused >= list->range){
+        return "";
+    }
     int idx=list->focused;
     char* user = new char[50];
     list->getText(user, idx, 50);
@@ -64,17 +65,30 @@ std::string LoginDialog::username() const {
 
 void LoginDialog::handleEvent(TEvent& event){
     if (event.what == evCommand){
-        switch (event.message.command) {
-        case cmNewAccount:
+        if(event.message.command == cmNewAccount) {
             endModal(cmNewAccount);
-            break;
-        case cmOK:
-            app.set_current_email_address(username());
-            break;
         }
     }
 
     TDialog::handleEvent(event);
+}
+
+Boolean LoginDialog::valid(ushort command){
+    if(!TDialog::valid(command)){
+        return false;
+    }
+
+    if(command == cmOK){
+        std::string selected_user = username();
+
+        if(selected_user.empty()){
+            return false; 
+        }
+
+        app.set_current_email_address(selected_user);
+    }
+
+    return true;
 }
 
 std::vector<Account> LoginDialog::get_accounts(){
