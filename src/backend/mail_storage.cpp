@@ -252,6 +252,10 @@ bool MailStorage::synchronize(const Account& account) noexcept
   // Fetch emails before deleting
   auto [emails, status] = fetch_emails(account);
 
+  if(!status){
+    return false;
+  }
+
   sqlite3* db = open_db(account.username);
 
   const char* sql = "DELETE FROM MailHeaders;";
@@ -264,7 +268,7 @@ bool MailStorage::synchronize(const Account& account) noexcept
       return false;
   }
 
-  if(!status || !save_emails(emails, db)){
+  if(!save_emails(emails, db)){
     sqlite3_close(db);
     return false;
   }
@@ -311,12 +315,12 @@ std::vector<Folder> load_emails(const std::string &email) noexcept {
     }
 
     sqlite3_finalize(stmt);
-    sqlite3_close(db);
 
     folders.push_back(Folder{folder_name, emails});
   }
 
   sqlite3_finalize(folder_stmt);
+  sqlite3_close(db);
 
   return folders;
 }
