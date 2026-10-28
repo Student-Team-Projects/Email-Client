@@ -34,11 +34,8 @@ void Mailbox::send(const MessageToSend &message) noexcept
     vmime::utility::url url(account.smtpHost);
     vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
 
-    vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
-    verifier->loadRootCertificates();
-
     vmime::shared_ptr<vmime::net::transport> transport = session->getTransport(url);
-    transport->setCertificateVerifier(verifier);
+    setupTls(transport);
 
     transport->setProperty("options.need-authentication", true);
     transport->setProperty("auth.username", account.username);

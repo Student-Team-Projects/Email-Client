@@ -138,11 +138,8 @@ std::shared_ptr<vmime::net::store> get_store(const Account& account)
   vmime::utility::url url(account.imapHost);
   vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
 
-  vmime::shared_ptr<certificateVerifier> verifier = vmime::make_shared<certificateVerifier>();
-  verifier->loadRootCertificates();
-
   vmime::shared_ptr<vmime::net::store> store = session->getStore(url);
-  store->setCertificateVerifier(verifier);
+  setupTls(store);
 
   store->setProperty("options.need-authentication", true);
   store->setProperty("auth.username", account.username);
