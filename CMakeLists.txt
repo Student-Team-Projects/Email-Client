@@ -16,7 +16,7 @@ set(BUILD_SHARED_LIBS ON)
 set(PKGVER_JSON v3.12.0)
 set(PKGVER_LIBXML2 v2.15.0)
 set(PKGVER_SQLITE3 v3.50.2)
-set(PKGVER_VMIME 7046a4360bbeea21d1d8b5cfa4589bb4df7f980d)
+set(PKGVER_VMIME 2cfa8185f9c11fc38a56e90a8bd048759b45585c)
 set(PKGVER_TVISION 85aaeca0999c8b53006c556ccda063f143d259ca)
 
 option(ENABLE_LOG "Enable logging" OFF)
@@ -56,7 +56,7 @@ FetchContent_Declare(tvision
   GIT_REPOSITORY https://github.com/magiblot/tvision.git
   GIT_TAG        ${PKGVER_TVISION}
   GIT_PROGRESS   TRUE
-  GIT_SHALLOW    TRUE
+# ^ no GIT_SHALLOW: a shallow clone only has the branch tip, so a pinned commit can't be checked out
   EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(tvision)
@@ -110,14 +110,12 @@ deferred_link_libraries(
 # TLDR: It really wants to be installed globally, but that's annoying for us so
 #   we don't let it. Instead we use the ExternalProject cannon to make it work.
 
-set(PKGVER_VMIME master)
 if(NOT EXTERNAL_VMIME)
   set(VMIME_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/external-vmime)
   ExternalProject_Add(vmime
   GIT_REPOSITORY https://github.com/kisli/vmime.git
   GIT_TAG ${PKGVER_VMIME}
   GIT_PROGRESS TRUE
-  GIT_SHALLOW TRUE
   PREFIX ${VMIME_INSTALL_DIR}
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${VMIME_INSTALL_DIR}
     -DCMAKE_BUILD_TYPE=Release
@@ -158,6 +156,12 @@ add_executable(email_client
 message("libs ${_deferred_link_libraries}")
 message("libdirs ${_deferred_link_directories}")
 message("incdirs ${_deferred_include_directories}")
+
+if(NOT EXTERNAL_VMIME)
+  # VMime is an ExternalProject, so CMake doesn't know our sources need its headers
+  # and library; without this, parallel builds compile them before VMime is installed
+  add_dependencies(email_client vmime)
+endif()
 
 # Include headers and subdirectories
 target_include_directories(email_client PUBLIC src)
