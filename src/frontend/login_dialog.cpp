@@ -65,13 +65,8 @@ std::string LoginDialog::username() const {
 
 void LoginDialog::handleEvent(TEvent& event){
     if (event.what == evCommand){
-        switch (event.message.command) {
-        case cmNewAccount:
+        if(event.message.command == cmNewAccount) {
             endModal(cmNewAccount);
-            break;
-        // case cmOK:
-        //     app.set_current_email_address(username());
-        //     break;
         }
     }
 
