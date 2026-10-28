@@ -19,24 +19,17 @@ Email-Client
 
 ### Manual Build
 
-#### 1. Create a build directory for the C++ project
+```sh
+cmake -S . -B build
+cmake --build build --parallel "$(nproc)"
+./build/email_client
+```
 
-`mkdir build && cd build`
-
-#### 2. Run CMake to configure the project
-
-`cmake ..`
-
-#### 3. Build the C++ project
-
-`cmake --build .`
-
-#### 4. Run the C++ email client application
-
-`./email_client`
+The first build downloads and compiles the dependencies, which takes a few minutes.
 
 If you have [`just`](https://just.systems) installed, you can also use the
-`build`, `run`, `buildrun` and `clean` recipes from the provided `Justfile`.
+`build`, `run`, `buildrun` and `clean` recipes from the provided `Justfile`;
+`just buildrun` builds and starts the client in one command.
 
 ## License
 

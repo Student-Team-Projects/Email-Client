@@ -1,9 +1,6 @@
 build:
-  #!/bin/sh
-  mkdir -p build
-  cd build
-  cmake ..
-  make
+  cmake -S . -B build
+  cmake --build build --parallel {{num_cpus()}}
 
 buildrun:
   just build
