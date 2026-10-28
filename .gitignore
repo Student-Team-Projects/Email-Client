@@ -5,3 +5,5 @@ build/
 .vscode/
 .cache
 
+dev/.certs/
+dev/.state/
