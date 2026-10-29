@@ -20,6 +20,7 @@ set(PKGVER_VMIME 2cfa8185f9c11fc38a56e90a8bd048759b45585c)
 set(PKGVER_TVISION 85aaeca0999c8b53006c556ccda063f143d259ca)
 
 option(ENABLE_LOG "Enable logging" OFF)
+option(BUILD_TESTS "Build the unit tests (fetches GoogleTest)" OFF)
 
 option(EXTERNAL_VMIME "If OFF, then build VMime and link to it for development" OFF)
 option(EXTERNAL_SQLITE "If OFF, then build SQLite3 and link to it for development" OFF)
@@ -80,6 +81,8 @@ FetchContent_Declare(libxml2
   EXCLUDE_FROM_ALL
 )
 if (NOT EXTERNAL_LIBXML2)
+  # libxml2's own tests are not built, so keep them out of ctest
+  set(LIBXML2_WITH_TESTS OFF CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(libxml2)
 else()
   find_package(libxml2 REQUIRED)
@@ -148,9 +151,9 @@ endif()
 
 # == END FETCH LIBRARIES ===============================================
 
-# Define the email_client executable
-add_executable(email_client
-  src/main.cpp
+# All sources except main.cpp go into a static library, so the tests can link
+# against the same code as the email_client executable
+add_library(email_client_core STATIC
   src/app.cpp
 )
 message("libs ${_deferred_link_libraries}")
@@ -160,16 +163,30 @@ message("incdirs ${_deferred_include_directories}")
 if(NOT EXTERNAL_VMIME)
   # VMime is an ExternalProject, so CMake doesn't know our sources need its headers
   # and library; without this, parallel builds compile them before VMime is installed
-  add_dependencies(email_client vmime)
+  add_dependencies(email_client_core vmime)
 endif()
 
 # Include headers and subdirectories
-target_include_directories(email_client PUBLIC src)
-target_include_directories(email_client PRIVATE ${_deferred_include_directories})
+target_include_directories(email_client_core PUBLIC src)
+target_include_directories(email_client_core PUBLIC ${_deferred_include_directories})
 
 add_subdirectory(src/backend)
 add_subdirectory(src/frontend)
 add_subdirectory(src/logging)
 
-target_link_libraries(email_client PRIVATE ${_deferred_link_libraries})
-target_link_directories(email_client PRIVATE ${_deferred_link_directories})
+# Dependencies are PUBLIC, so everything linking email_client_core (the executable
+# and the tests) gets their headers and libraries too
+list(REMOVE_ITEM _deferred_link_libraries PRIVATE)
+target_link_libraries(email_client_core PUBLIC ${_deferred_link_libraries})
+target_link_directories(email_client_core PUBLIC ${_deferred_link_directories})
+
+# Define the email_client executable
+add_executable(email_client
+  src/main.cpp
+)
+target_link_libraries(email_client PRIVATE email_client_core)
+
+if(BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()

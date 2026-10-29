@@ -1,4 +1,4 @@
-target_sources(email_client 
+target_sources(email_client_core 
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/app_frontend.cpp
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/email_window.cpp
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/login_dialog.cpp
