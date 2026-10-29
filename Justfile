@@ -10,6 +10,12 @@ buildrun:
 run:
   ./build/email_client
 
+# Build with the unit tests and run them; extra args go to ctest, e.g. `just test -R HtmlParser`
+test *args:
+  cmake -S . -B build -DBUILD_TESTS=ON
+  cmake --build build --parallel {{num_cpus()}}
+  ctest --test-dir build/tests --output-on-failure {{args}}
+
 clean:
   rm -rf build
 
