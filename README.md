@@ -62,6 +62,36 @@ Run `dev/mail-server.sh` without arguments to see all commands. With `just`:
 - GreenMail keeps mail in memory only, so stopping the server clears all
   mailboxes.
 
+### Tests
+
+Unit tests use [GoogleTest](https://google.github.io/googletest/) (with GMock).
+They are off by default, so a normal build does not download GoogleTest.
+
+```sh
+cmake -S . -B build -DBUILD_TESTS=ON
+cmake --build build --parallel "$(nproc)"
+ctest --test-dir build/tests --output-on-failure
+```
+
+Or `just test`. Extra arguments go to `ctest`, e.g. `just test -R HtmlParser`
+runs only the tests whose name matches `HtmlParser`.
+
+All sources except `src/main.cpp` are built into the `email_client_core`
+library, which both the client and the tests link against. CI (GitHub
+Actions) builds the project and runs the tests on every pull request and on
+every push to `main`.
+
+Conventions (see `tests/backend/html_parser_test.cpp` for an example):
+
+- Test files mirror `src/`: tests for `src/backend/html_parser.cpp` go in
+  `tests/backend/html_parser_test.cpp`. Add new files to `tests/CMakeLists.txt`.
+- Suite name: the tested class or file + `Test`, e.g. `HtmlParserTest`.
+- Test name: what the code should do, e.g. `DecodeQuotedPrintableDecodesHexEscapes`.
+- Use `EXPECT_*` by default. Use `ASSERT_*` only when the rest of the test
+  makes no sense after a failure, e.g. before using an element of a vector
+  whose size was just checked.
+- Unit tests must not use the network or the user's config.
+
 ## License
 
 This project is licensed under the GNU GPL version 3 (or later). See the

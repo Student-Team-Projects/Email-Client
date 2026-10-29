@@ -1,0 +1,70 @@
+name: CI
+
+# Every push to any branch, plus pull requests (needed for PRs from forks,
+# whose pushes do not run workflows in this repository)
+on:
+  push:
+  pull_request:
+
+# A newer push to the same branch or PR cancels the older, now outdated run;
+# on main every commit is tested to the end
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  # Also picked up by the VMime ExternalProject, so its build is cached too
+  CMAKE_C_COMPILER_LAUNCHER: ccache
+  CMAKE_CXX_COMPILER_LAUNCHER: ccache
+
+jobs:
+  # The target platform (the client is packaged for the AUR). Arch is a rolling
+  # release, so this job can start failing after a package update with no change
+  # on our side; the Ubuntu job then shows whether our code or the update is at fault.
+  arch:
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      # Before checkout: actions/checkout needs git, and FetchContent clones with it
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed base-devel cmake git gnutls icu ncurses gpm ccache
+
+      - uses: actions/checkout@v5
+
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: arch-${{ hashFiles('CMakeLists.txt') }}
+
+      - name: Configure
+        run: cmake -S . -B build -DBUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --parallel "$(nproc)"
+
+      - name: Test
+        run: ctest --test-dir build/tests --output-on-failure
+
+  ubuntu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgnutls28-dev libicu-dev libncurses-dev libgpm-dev
+
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: ubuntu-${{ hashFiles('CMakeLists.txt') }}
+
+      - name: Configure
+        run: cmake -S . -B build -DBUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --parallel "$(nproc)"
+
+      - name: Test
+        run: ctest --test-dir build/tests --output-on-failure
