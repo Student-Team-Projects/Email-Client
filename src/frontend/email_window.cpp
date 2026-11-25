@@ -133,8 +133,9 @@ void EmailWindow::handleEvent(TEvent& event){
             return;
         }
         else if(event.message.command == cmCancel){
-            close();
+            // close() deletes this window, so nothing may touch it afterwards
             clearEvent(event);
+            close();
             return;
         }
     }
