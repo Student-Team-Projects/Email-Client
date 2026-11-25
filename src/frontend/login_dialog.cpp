@@ -60,9 +60,10 @@ std::string LoginDialog::username() const {
     if(list == nullptr || list->range == 0 || list->focused < 0 || list->focused >= list->range){
         return "";
     }
-    int idx=list->focused;
-    char* user = new char[50];
-    list->getText(user, idx, 50);
+    // TListBox::getText() writes the terminating '\0' at dest[maxLen],
+    // so pass one less than the buffer size
+    char user[256];
+    list->getText(user, list->focused, sizeof(user) - 1);
     return std::string(user);
 }
 
