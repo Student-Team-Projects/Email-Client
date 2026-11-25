@@ -17,7 +17,7 @@
 Mailbox::Mailbox(Account account)
   : account(account) {}
 
-void Mailbox::send(const MessageToSend &message) noexcept
+bool Mailbox::send(const MessageToSend &message) noexcept
 {
   logging::log("mailbox_send");
   try {
@@ -46,12 +46,15 @@ void Mailbox::send(const MessageToSend &message) noexcept
     transport->disconnect();
 
     MailStorage::save_sent_email(message, account.username);
+    return true;
   }
   catch (vmime::exception& e) {
     logging::log("Error sending email: " + (std::string)e.what());
+    return false;
   }
   catch (std::exception& e) {
     logging::log("General error: " + (std::string)e.what());
+    return false;
   }
 }
 
