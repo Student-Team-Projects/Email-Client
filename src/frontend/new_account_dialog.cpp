@@ -1,6 +1,7 @@
 #include "new_account_dialog.hpp"
 #include "app_theme.hpp"
 #include "account_helper.hpp"
+#include <filesystem>
 
 namespace {
     // One length limit for every field; hosts and app passwords can be long
@@ -172,6 +173,14 @@ bool NewAccountDialog::add_account(const Account& new_account){
         return false;
     }
 
+    // The file holds passwords: readable only by the user (was 0664)
+    std::error_code ec;
+    std::filesystem::permissions(path,
+        std::filesystem::perms::owner_read | std::filesystem::perms::owner_write,
+        std::filesystem::perm_options::replace, ec);
+    if (ec) {
+        logging::log("Failed to set config.json permissions: " + ec.message());
+    }
     return true;
 }
 
