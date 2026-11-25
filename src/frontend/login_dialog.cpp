@@ -104,20 +104,27 @@ Boolean LoginDialog::valid(ushort command){
 }
 
 std::vector<Account> LoginDialog::get_accounts(){
+    std::vector<Account> accounts;
+
     std::ifstream configFile(Application::get_config_path());
     if (!configFile){
         logging::log("Failed to open config.json");
+        return accounts;
     }
 
-    nlohmann::json config;
-    configFile >> config;
-
-    std::vector<Account> emails_passwords;
-    for(auto& account : config) {
-        emails_passwords.push_back(accountFromJson(account));
+    // A broken config.json used to crash the whole application here
+    try {
+        nlohmann::json config;
+        configFile >> config;
+        for(auto& account : config) {
+            accounts.push_back(accountFromJson(account));
+        }
+    } catch (const std::exception& e) {
+        logging::log(std::string("Failed to read config.json: ") + e.what());
+        accounts.clear();
     }
 
-    return emails_passwords;
+    return accounts;
 }
 
 TColorAttr LoginDialog::mapColor(uchar index) noexcept {
