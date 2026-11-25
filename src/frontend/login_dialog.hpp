@@ -1,3 +1,4 @@
+#pragma once
 #include "backend/account.h"
 #define Uses_TDialog
 #define Uses_TInputLine

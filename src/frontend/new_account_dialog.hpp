@@ -1,3 +1,4 @@
+#pragma once
 #define Uses_TDialog
 #define Uses_TInputLine
 #define Uses_TLabel

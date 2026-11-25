@@ -1,3 +1,4 @@
+#pragma once
 #include "app.hpp"
 #define Uses_TWindow
 #define Uses_TInputLine

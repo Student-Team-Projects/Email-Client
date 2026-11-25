@@ -1,3 +1,4 @@
+#pragma once
 #include "app.hpp"
 #include "backend/mail_types.h"
 #define Uses_TWindow
