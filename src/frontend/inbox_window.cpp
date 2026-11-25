@@ -16,10 +16,10 @@ public:
 };
 
 InboxWindow::InboxWindow(const TRect& bounds, Application& app) :
-    TWindow(bounds, "Inbox", wnNoNumber),
     TWindowInit(&InboxWindow::initFrame),
-    currentContentView(nullptr),
-    app(app)
+    TWindow(bounds, "Inbox", wnNoNumber),
+    app(app),
+    currentContentView(nullptr)
 {
     fetchMailData();
 

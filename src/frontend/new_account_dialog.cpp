@@ -3,8 +3,8 @@
 #include "account_helper.hpp"
 
 NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
-    TDialog(r, "Create new account"),
     TWindowInit(&TDialog::initFrame),
+    TDialog(r, "Create new account"),
     app(app) {
     options |= ofCentered;
 

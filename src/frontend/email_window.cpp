@@ -6,8 +6,8 @@
 #include "commands.hpp"
 
 EmailWindow::EmailWindow(const TRect &bounds, Application& app) :
-    TWindow(bounds, "Compose Email", wnNoNumber),
     TWindowInit(&EmailWindow::initFrame),
+    TWindow(bounds, "Compose Email", wnNoNumber),
     app(app) {
 
     int margin = 2;

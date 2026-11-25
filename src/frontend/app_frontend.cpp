@@ -6,7 +6,7 @@
 
 Application_frontend::Application_frontend(Application& app) :
     TProgInit(&Application_frontend::initStatusLine, &Application_frontend::initMenuBar, &Application_frontend::initDeskTop),
-    app(app), loginSucceeded(false){
+    loginSucceeded(false), app(app) {
     deskTop->insert(new EmailWindow(deskTop->getExtent(), app));
 }
 

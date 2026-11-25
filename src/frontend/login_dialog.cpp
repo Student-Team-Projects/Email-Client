@@ -3,15 +3,14 @@
 #include "account_helper.hpp"
 
 LoginDialog::LoginDialog(TRect r, Application& app) :
-    TDialog(r, "Login"),
     TWindowInit(&TDialog::initFrame),
+    TDialog(r, "Login"),
     app(app) {
     options |= ofCentered;
 
     int marginX = 2;
     int topY = 2;
     int bottomY = size.y - 4;
-    int listWidth = size.x - (2 * marginX);
 
     insert(new TLabel(TRect(marginX, 1, size.x, 2), "Choose account:", this));
 

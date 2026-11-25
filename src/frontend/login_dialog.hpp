@@ -34,6 +34,6 @@ class LoginDialog : public TDialog {
     virtual Boolean valid(ushort command) override;
 
 public:
-    LoginDialog(TRect r, Application& app);;
+    LoginDialog(TRect r, Application& app);
     std::string username() const;
 };
