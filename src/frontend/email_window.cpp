@@ -25,7 +25,9 @@ EmailWindow::EmailWindow(const TRect &bounds, Application& app) :
 
     insert(new TLabel(TRect(margin, y, margin + labelW, y + 1), "~F~rom:", this));
     fromField = new TInputLine(TRect(inputX, y, rightEdge, y + 1), 128);
-    strcpy(fromField->data, app.get_current_email_address().c_str());
+    strnzcpy(fromField->data, app.get_current_email_address(), 128);
+    // Mail is always sent from the logged in account, so the field is read-only
+    fromField->options &= ~ofSelectable;
     insert(fromField);
 
     y += 2;
