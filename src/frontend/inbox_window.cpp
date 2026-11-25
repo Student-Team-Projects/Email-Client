@@ -135,8 +135,6 @@ void InboxWindow::handleEvent(TEvent& event) {
             }
         }
     }
-
-    TWindow::handleEvent(event);
 }
 
 TColorAttr InboxWindow::mapColor(uchar index) noexcept {
