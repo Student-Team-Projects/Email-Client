@@ -2,17 +2,24 @@
 #include "app_theme.hpp"
 #include "account_helper.hpp"
 
+namespace {
+    // One length limit for every field; hosts and app passwords can be long
+    constexpr int fieldMaxLen = 256;
+}
+
 NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
     TWindowInit(&TDialog::initFrame),
     TDialog(r, "Create new account"),
     app(app) {
     options |= ofCentered;
 
-    int labelW = 6;
-    int inputW = 26;
+    int labelW = 11;   // fits the longest label, "SMTP Host:"
+    int inputW = 40;
     int gap = 1;
     int formTotalWidth = labelW + gap + inputW;
     int formStartX = (size.x - formTotalWidth) / 2;
+    if (formStartX < 1) formStartX = 1;
+    int inputX = formStartX + labelW + gap;
 
     int wCreate = 12;
     int wLogin = 17;
@@ -20,39 +27,32 @@ NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
     int rowBtnWidth = wCreate + btnGap + wLogin;
     int rowBtnX = (size.x - rowBtnWidth) / 2;
 
-    int groupHeight = 6;
+    int groupHeight = 10;  // 4 fields every 2 rows + buttons
 
     int availableHeight = size.y - 3;
     int y = (availableHeight - groupHeight) / 2;
 
     if (y < 1) y = 1;
 
-    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "User:", this));
-    user = new TInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 40);
-    insert(user);
+    auto addField = [&](const char* label, TInputLine* input) {
+        insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), label, input));
+        insert(input);
+        y += 2;
+    };
 
-    y += 2;
+    user = new TInputLine(TRect(inputX, y, inputX + inputW, y + 1), fieldMaxLen);
+    addField("~U~ser:", user);
 
-    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "Pass:", this));
-    pass = new TPasswordInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 100);
-    insert(pass);
+    pass = new TPasswordInputLine(TRect(inputX, y, inputX + inputW, y + 1), fieldMaxLen);
+    addField("~P~ass:", pass);
 
-    y += 2;
+    smtpHost = new TInputLine(TRect(inputX, y, inputX + inputW, y + 1), fieldMaxLen);
+    strnzcpy(smtpHost->data, "smtps://smtp.gmail.com:465", fieldMaxLen);
+    addField("~S~MTP Host:", smtpHost);
 
-    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "SMTP Host:", this));
-    smtpHost = new TInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 100);
-    strcpy(smtpHost->data, "smtps://smtp.gmail.com:465");
-    insert(smtpHost);
-
-    y += 1;
-
-    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "IMAP Host:", this));
-    imapHost = new TInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 40);
-    strcpy(imapHost->data, "imaps://imap.gmail.com:993");
-    insert(imapHost);
-
-    y += 2;
-
+    imapHost = new TInputLine(TRect(inputX, y, inputX + inputW, y + 1), fieldMaxLen);
+    strnzcpy(imapHost->data, "imaps://imap.gmail.com:993", fieldMaxLen);
+    addField("~I~MAP Host:", imapHost);
 
     insert(new TButton(TRect(rowBtnX, y, rowBtnX + wCreate, y + 2),
                        "~C~reate", cmOK, bfDefault));
