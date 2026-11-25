@@ -84,37 +84,95 @@ Account NewAccountDialog::account() const {
 }
 
 void NewAccountDialog::handleEvent(TEvent& event){
-    if (event.what == evCommand){
-        switch (event.message.command) {
-        case cmOK:
-            add_account(account());
-            app.set_current_email_address(account().username);
-            break;
-        case cmLogin:
-            endModal(cmLogin);
-            break;
-        }
+    if (event.what == evCommand && event.message.command == cmLogin){
+        endModal(cmLogin);
+        clearEvent(event);
+        return;
     }
 
     TDialog::handleEvent(event);
 }
 
-void NewAccountDialog::add_account(const Account& new_account){
-    std::ifstream configFile(Application::get_config_path());
-    if (!configFile){
-        logging::log("Failed to open config.json");
-        return;
+// "Create" ends the dialog only after the form is valid and the account is saved
+Boolean NewAccountDialog::valid(ushort command){
+    if(!TDialog::valid(command)){
+        return false;
+    }
+    if(command != cmOK){
+        return true;
     }
 
-    nlohmann::json config;
-    configFile >> config;
+    Account new_account = account();
+    if(!validate(new_account) || !add_account(new_account)){
+        return false;
+    }
 
-    nlohmann::json new_account_json = accountToJson(new_account);
-    config.push_back(new_account_json);
+    try {
+        app.set_current_email_address(new_account.username);
+    } catch (const std::exception& e) {
+        logging::log(std::string("Login failed: ") + e.what());
+        messageBox(std::string("Could not log in:\n") + e.what(), mfError | mfOKButton);
+        return false;
+    }
+    return true;
+}
 
-    configFile.close();
-    std::ofstream new_config_file(Application::get_config_path(), std::ios::trunc);
+bool NewAccountDialog::validate(const Account& account){
+    auto fail = [](const char* msg) {
+        messageBox(msg, mfError | mfOKButton);
+        return false;
+    };
+
+    if(account.username.empty() || account.password.empty()
+       || account.smtpHost.empty() || account.imapHost.empty()){
+        return fail("All fields are required.");
+    }
+    if(account.username.find('@') == std::string::npos){
+        return fail("User must be an email address, e.g. alice@example.com.");
+    }
+    if(account.smtpHost.find("://") == std::string::npos){
+        return fail("SMTP host must be a URL, e.g. smtps://smtp.gmail.com:465.");
+    }
+    if(account.imapHost.find("://") == std::string::npos){
+        return fail("IMAP host must be a URL, e.g. imaps://imap.gmail.com:993.");
+    }
+    return true;
+}
+
+bool NewAccountDialog::add_account(const Account& new_account){
+    const std::string path = Application::get_config_path();
+
+    nlohmann::json config = nlohmann::json::array();
+    try {
+        std::ifstream configFile(path);
+        if (configFile){
+            configFile >> config;
+        }
+    } catch (const std::exception& e) {
+        logging::log(std::string("Failed to read config.json: ") + e.what());
+        messageBox("config.json is damaged, the account was not saved.", mfError | mfOKButton);
+        return false;
+    }
+
+    for (const auto& existing : config) {
+        if (existing.value("username", "") == new_account.username) {
+            messageBox("This account already exists.", mfError | mfOKButton);
+            return false;
+        }
+    }
+
+    config.push_back(accountToJson(new_account));
+
+    std::ofstream new_config_file(path, std::ios::trunc);
     new_config_file << config;
+    new_config_file.close();
+    if (!new_config_file) {
+        logging::log("Failed to write config.json");
+        messageBox("Could not save config.json.", mfError | mfOKButton);
+        return false;
+    }
+
+    return true;
 }
 
 TColorAttr NewAccountDialog::mapColor(uchar index) noexcept {
