@@ -74,6 +74,17 @@ EmailWindow::EmailWindow(const TRect &bounds, Application& app) :
                        "~C~ancel", cmCancel, bfNormal));
 }
 
+// TEditor keeps the text in a gap buffer, so `buffer` is not a plain string:
+// after editing in the middle it holds the gap and may not end with '\0'.
+std::string EmailWindow::bodyText() const {
+    std::string text;
+    text.reserve(bodyEditor->bufLen);
+    for (uint i = 0; i < bodyEditor->bufLen; ++i) {
+        text += bodyEditor->bufChar(i);
+    }
+    return text;
+}
+
 void EmailWindow::handleEvent(TEvent& event){
     TWindow::handleEvent(event);
     if (event.what == evCommand) {
@@ -81,7 +92,7 @@ void EmailWindow::handleEvent(TEvent& event){
             MessageToSend outgoing;
             outgoing.recipient = toField->data;
             outgoing.subject = subjectField->data;
-            outgoing.body = bodyEditor->buffer;
+            outgoing.body = bodyText();
 
             app.send_email(outgoing);
             // TODO: also copy_to Sent mails (need backend fix)

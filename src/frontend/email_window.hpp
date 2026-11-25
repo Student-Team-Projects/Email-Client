@@ -19,6 +19,7 @@ class EmailWindow : public TWindow {
     TScrollBar *vScroll, *hScroll;
 
     virtual TColorAttr mapColor(uchar index) noexcept override;
+    std::string bodyText() const;
 
 public:
     EmailWindow(const TRect &bounds, Application& app);
