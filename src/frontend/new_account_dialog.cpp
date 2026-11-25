@@ -1,18 +1,26 @@
 #include "new_account_dialog.hpp"
 #include "app_theme.hpp"
 #include "account_helper.hpp"
+#include <filesystem>
+
+namespace {
+    // One length limit for every field; hosts and app passwords can be long
+    constexpr int fieldMaxLen = 256;
+}
 
 NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
-    TDialog(r, "Create new account"),
     TWindowInit(&TDialog::initFrame),
+    TDialog(r, "Create new account"),
     app(app) {
     options |= ofCentered;
 
-    int labelW = 6;
-    int inputW = 26;
+    int labelW = 11;   // fits the longest label, "SMTP Host:"
+    int inputW = 40;
     int gap = 1;
     int formTotalWidth = labelW + gap + inputW;
     int formStartX = (size.x - formTotalWidth) / 2;
+    if (formStartX < 1) formStartX = 1;
+    int inputX = formStartX + labelW + gap;
 
     int wCreate = 12;
     int wLogin = 17;
@@ -20,39 +28,32 @@ NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
     int rowBtnWidth = wCreate + btnGap + wLogin;
     int rowBtnX = (size.x - rowBtnWidth) / 2;
 
-    int groupHeight = 6;
+    int groupHeight = 10;  // 4 fields every 2 rows + buttons
 
     int availableHeight = size.y - 3;
     int y = (availableHeight - groupHeight) / 2;
 
     if (y < 1) y = 1;
 
-    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "User:", this));
-    user = new TInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 40);
-    insert(user);
+    auto addField = [&](const char* label, TInputLine* input) {
+        insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), label, input));
+        insert(input);
+        y += 2;
+    };
 
-    y += 2;
+    user = new TInputLine(TRect(inputX, y, inputX + inputW, y + 1), fieldMaxLen);
+    addField("~U~ser:", user);
 
-    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "Pass:", this));
-    pass = new TPasswordInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 100);
-    insert(pass);
+    pass = new TPasswordInputLine(TRect(inputX, y, inputX + inputW, y + 1), fieldMaxLen);
+    addField("~P~ass:", pass);
 
-    y += 2;
+    smtpHost = new TInputLine(TRect(inputX, y, inputX + inputW, y + 1), fieldMaxLen);
+    strnzcpy(smtpHost->data, "smtps://smtp.gmail.com:465", fieldMaxLen);
+    addField("~S~MTP Host:", smtpHost);
 
-    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "SMTP Host:", this));
-    smtpHost = new TInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 100);
-    strcpy(smtpHost->data, "smtps://smtp.gmail.com:465");
-    insert(smtpHost);
-
-    y += 1;
-
-    insert(new TLabel(TRect(formStartX, y, formStartX + labelW, y + 1), "IMAP Host:", this));
-    imapHost = new TInputLine(TRect(formStartX + labelW + gap, y, formStartX + labelW + gap + inputW, y + 1), 40);
-    strcpy(imapHost->data, "imaps://imap.gmail.com:993");
-    insert(imapHost);
-
-    y += 2;
-
+    imapHost = new TInputLine(TRect(inputX, y, inputX + inputW, y + 1), fieldMaxLen);
+    strnzcpy(imapHost->data, "imaps://imap.gmail.com:993", fieldMaxLen);
+    addField("~I~MAP Host:", imapHost);
 
     insert(new TButton(TRect(rowBtnX, y, rowBtnX + wCreate, y + 2),
                        "~C~reate", cmOK, bfDefault));
@@ -68,6 +69,9 @@ NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
 
     insert(new TButton(TRect(exitX, bottomY, exitX + wExit, bottomY + 2),
                        "Exit", cmCancel, bfNormal));
+
+    // Start typing in the first field instead of having "Exit" focused
+    user->select();
 }
 
 
@@ -81,37 +85,103 @@ Account NewAccountDialog::account() const {
 }
 
 void NewAccountDialog::handleEvent(TEvent& event){
-    if (event.what == evCommand){
-        switch (event.message.command) {
-        case cmOK:
-            add_account(account());
-            app.set_current_email_address(account().username);
-            break;
-        case cmLogin:
-            endModal(cmLogin);
-            break;
-        }
+    if (event.what == evCommand && event.message.command == cmLogin){
+        endModal(cmLogin);
+        clearEvent(event);
+        return;
     }
 
     TDialog::handleEvent(event);
 }
 
-void NewAccountDialog::add_account(const Account& new_account){
-    std::ifstream configFile(Application::get_config_path());
-    if (!configFile){
-        logging::log("Failed to open config.json");
-        return;
+// "Create" ends the dialog only after the form is valid and the account is saved
+Boolean NewAccountDialog::valid(ushort command){
+    if(!TDialog::valid(command)){
+        return false;
+    }
+    if(command != cmOK){
+        return true;
     }
 
-    nlohmann::json config;
-    configFile >> config;
+    Account new_account = account();
+    if(!validate(new_account) || !add_account(new_account)){
+        return false;
+    }
 
-    nlohmann::json new_account_json = accountToJson(new_account);
-    config.push_back(new_account_json);
+    try {
+        app.set_current_email_address(new_account.username);
+    } catch (const std::exception& e) {
+        logging::log(std::string("Login failed: ") + e.what());
+        messageBox(std::string("Could not log in:\n") + e.what(), mfError | mfOKButton);
+        return false;
+    }
+    return true;
+}
 
-    configFile.close();
-    std::ofstream new_config_file(Application::get_config_path(), std::ios::trunc);
+bool NewAccountDialog::validate(const Account& account){
+    auto fail = [](const char* msg) {
+        messageBox(msg, mfError | mfOKButton);
+        return false;
+    };
+
+    if(account.username.empty() || account.password.empty()
+       || account.smtpHost.empty() || account.imapHost.empty()){
+        return fail("All fields are required.");
+    }
+    if(account.username.find('@') == std::string::npos){
+        return fail("User must be an email address, e.g. alice@example.com.");
+    }
+    if(account.smtpHost.find("://") == std::string::npos){
+        return fail("SMTP host must be a URL, e.g. smtps://smtp.gmail.com:465.");
+    }
+    if(account.imapHost.find("://") == std::string::npos){
+        return fail("IMAP host must be a URL, e.g. imaps://imap.gmail.com:993.");
+    }
+    return true;
+}
+
+bool NewAccountDialog::add_account(const Account& new_account){
+    const std::string path = Application::get_config_path();
+
+    nlohmann::json config = nlohmann::json::array();
+    try {
+        std::ifstream configFile(path);
+        if (configFile){
+            configFile >> config;
+        }
+    } catch (const std::exception& e) {
+        logging::log(std::string("Failed to read config.json: ") + e.what());
+        messageBox("config.json is damaged, the account was not saved.", mfError | mfOKButton);
+        return false;
+    }
+
+    for (const auto& existing : config) {
+        if (existing.value("username", "") == new_account.username) {
+            messageBox("This account already exists.", mfError | mfOKButton);
+            return false;
+        }
+    }
+
+    config.push_back(accountToJson(new_account));
+
+    std::ofstream new_config_file(path, std::ios::trunc);
     new_config_file << config;
+    new_config_file.close();
+    if (!new_config_file) {
+        logging::log("Failed to write config.json");
+        messageBox("Could not save config.json.", mfError | mfOKButton);
+        return false;
+    }
+
+    // The file holds passwords: readable only by the user (was 0664)
+    std::error_code ec;
+    std::filesystem::permissions(path,
+        std::filesystem::perms::owner_read | std::filesystem::perms::owner_write,
+        std::filesystem::perm_options::replace, ec);
+    if (ec) {
+        logging::log("Failed to set config.json permissions: " + ec.message());
+    }
+    return true;
 }
 
 TColorAttr NewAccountDialog::mapColor(uchar index) noexcept {

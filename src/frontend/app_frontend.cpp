@@ -6,8 +6,7 @@
 
 Application_frontend::Application_frontend(Application& app) :
     TProgInit(&Application_frontend::initStatusLine, &Application_frontend::initMenuBar, &Application_frontend::initDeskTop),
-    app(app), loginSucceeded(false){
-    deskTop->insert(new EmailWindow(deskTop->getExtent(), app));
+    loginSucceeded(false), app(app) {
 }
 
 
@@ -17,6 +16,7 @@ TStatusLine* Application_frontend::initStatusLine(TRect r){
     return new TStatusLine(r,
         *new TStatusDef(0, 0xFFFF) +
             *new TStatusItem("~Alt-X~ Exit", kbAltX, cmQuit) +
+            *new TStatusItem("~F2~ New email", kbF2, cmNewMail) +
             *new TStatusItem(0, kbF10, cmMenu)
             );
 }

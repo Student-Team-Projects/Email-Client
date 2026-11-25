@@ -9,7 +9,8 @@
 class Mailbox {
 public:
   Mailbox(Account account);
-  void send(const MessageToSend& message) noexcept;
+  // Returns false if the message could not be sent (details go to the log)
+  bool send(const MessageToSend& message) noexcept;
   void synchronize() noexcept;
   std::vector<Folder> get_email_headers() noexcept;
   std::string get_email_body(const std::string& uid, const std::string& folder_path) noexcept;

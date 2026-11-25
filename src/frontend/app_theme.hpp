@@ -1,3 +1,4 @@
+#pragma once
 #include <tvision/tv.h>
 #include <nlohmann/json.hpp>
 #include <string>

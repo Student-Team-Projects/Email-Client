@@ -24,7 +24,8 @@ public:
     void add_on_state_change_event(std::function<void(State, State)>);
     void set_current_email_address(std::string new_address);
     std::string get_current_email_address();
-    void send_email(const MessageToSend& email);
+    // Returns false if the email could not be sent
+    bool send_email(const MessageToSend& email);
     void synchronize();
     std::vector<Folder> fetch_email_headers();
     std::string get_email_body(const std::string& uid, const std::string& folder_path);

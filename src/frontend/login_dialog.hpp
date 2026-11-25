@@ -1,3 +1,4 @@
+#pragma once
 #include "backend/account.h"
 #define Uses_TDialog
 #define Uses_TInputLine
@@ -9,6 +10,7 @@
 #define Uses_TStringCollection
 #define Uses_TProgram
 #define Uses_TDeskTop
+#define Uses_MsgBox
 #include <tvision/tv.h>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -33,6 +35,6 @@ class LoginDialog : public TDialog {
     virtual Boolean valid(ushort command) override;
 
 public:
-    LoginDialog(TRect r, Application& app);;
+    LoginDialog(TRect r, Application& app);
     std::string username() const;
 };

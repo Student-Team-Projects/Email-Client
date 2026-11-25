@@ -3,15 +3,14 @@
 #include "account_helper.hpp"
 
 LoginDialog::LoginDialog(TRect r, Application& app) :
-    TDialog(r, "Login"),
     TWindowInit(&TDialog::initFrame),
+    TDialog(r, "Login"),
     app(app) {
     options |= ofCentered;
 
     int marginX = 2;
     int topY = 2;
     int bottomY = size.y - 4;
-    int listWidth = size.x - (2 * marginX);
 
     insert(new TLabel(TRect(marginX, 1, size.x, 2), "Choose account:", this));
 
@@ -51,15 +50,20 @@ LoginDialog::LoginDialog(TRect r, Application& app) :
 
     insert(new TButton(TRect(startX, btnY, startX + wCancel, btnY + 2),
                        "Exit", cmCancel, bfNormal));
+
+    // Start with the account list focused. Otherwise the last inserted view
+    // ("Exit") has the focus and pressing Enter closes the application.
+    list->select();
 }
 
 std::string LoginDialog::username() const {
     if(list == nullptr || list->range == 0 || list->focused < 0 || list->focused >= list->range){
         return "";
     }
-    int idx=list->focused;
-    char* user = new char[50];
-    list->getText(user, idx, 50);
+    // TListBox::getText() writes the terminating '\0' at dest[maxLen],
+    // so pass one less than the buffer size
+    char user[256];
+    list->getText(user, list->focused, sizeof(user) - 1);
     return std::string(user);
 }
 
@@ -71,6 +75,14 @@ void LoginDialog::handleEvent(TEvent& event){
     }
 
     TDialog::handleEvent(event);
+
+    // Double click or Space on an account works like "Choose"
+    // (Enter already does, through the default button).
+    if (event.what == evBroadcast && event.message.command == cmListItemSelected
+        && event.message.infoPtr == list) {
+        clearEvent(event);
+        endModal(cmOK);
+    }
 }
 
 Boolean LoginDialog::valid(ushort command){
@@ -82,30 +94,45 @@ Boolean LoginDialog::valid(ushort command){
         std::string selected_user = username();
 
         if(selected_user.empty()){
-            return false; 
+            messageBox("No account selected. Create one with \"New account\".",
+                       mfInformation | mfOKButton);
+            return false;
         }
 
-        app.set_current_email_address(selected_user);
+        try {
+            app.set_current_email_address(selected_user);
+        } catch (const std::exception& e) {
+            logging::log(std::string("Login failed: ") + e.what());
+            messageBox(std::string("Could not log in:\n") + e.what(), mfError | mfOKButton);
+            return false;
+        }
     }
 
     return true;
 }
 
 std::vector<Account> LoginDialog::get_accounts(){
+    std::vector<Account> accounts;
+
     std::ifstream configFile(Application::get_config_path());
     if (!configFile){
         logging::log("Failed to open config.json");
+        return accounts;
     }
 
-    nlohmann::json config;
-    configFile >> config;
-
-    std::vector<Account> emails_passwords;
-    for(auto& account : config) {
-        emails_passwords.push_back(accountFromJson(account));
+    // A broken config.json used to crash the whole application here
+    try {
+        nlohmann::json config;
+        configFile >> config;
+        for(auto& account : config) {
+            accounts.push_back(accountFromJson(account));
+        }
+    } catch (const std::exception& e) {
+        logging::log(std::string("Failed to read config.json: ") + e.what());
+        accounts.clear();
     }
 
-    return emails_passwords;
+    return accounts;
 }
 
 TColorAttr LoginDialog::mapColor(uchar index) noexcept {
