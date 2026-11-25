@@ -72,6 +72,9 @@ EmailWindow::EmailWindow(const TRect &bounds, Application& app) :
 
     insert(new TButton(TRect(startX, btnY, startX + btnW, btnY + 2),
                        "~C~ancel", cmCancel, bfNormal));
+
+    // Start in the "To" field, not on the last inserted button
+    toField->select();
 }
 
 // TEditor keeps the text in a gap buffer, so `buffer` is not a plain string:
