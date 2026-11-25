@@ -90,20 +90,46 @@ std::string EmailWindow::bodyText() const {
     return text;
 }
 
+void EmailWindow::send() {
+    MessageToSend outgoing;
+    outgoing.recipient = toField->data;
+    outgoing.subject = subjectField->data;
+    outgoing.body = bodyText();
+
+    if (outgoing.recipient.empty()) {
+        messageBox("Enter the recipient (To).", mfError | mfOKButton);
+        toField->select();
+        return;
+    }
+    if (outgoing.subject.empty()) {
+        messageBox("Enter the subject.", mfError | mfOKButton);
+        subjectField->select();
+        return;
+    }
+    if (outgoing.body.empty()) {
+        messageBox("The message is empty.", mfError | mfOKButton);
+        bodyEditor->select();
+        return;
+    }
+
+    if (!app.send_email(outgoing)) {
+        // Keep the window open so the user does not lose the text
+        messageBox("Could not send the email. Check the recipient address and your connection.",
+                   mfError | mfOKButton);
+        return;
+    }
+    // TODO: also copy_to Sent mails (need backend fix)
+
+    messageBox("Email sent.", mfInformation | mfOKButton);
+    close();
+}
+
 void EmailWindow::handleEvent(TEvent& event){
     TWindow::handleEvent(event);
     if (event.what == evCommand) {
         if(event.message.command == cmSend){
-            MessageToSend outgoing;
-            outgoing.recipient = toField->data;
-            outgoing.subject = subjectField->data;
-            outgoing.body = bodyText();
-
-            app.send_email(outgoing);
-            // TODO: also copy_to Sent mails (need backend fix)
-
-            close();
             clearEvent(event);
+            send();
             return;
         }
         else if(event.message.command == cmCancel){

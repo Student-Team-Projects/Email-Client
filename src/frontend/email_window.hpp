@@ -6,6 +6,7 @@
 #define Uses_TLabel
 #define Uses_TScrollBar
 #define Uses_TButton
+#define Uses_MsgBox
 #include <tvision/tv.h>
 
 
@@ -20,6 +21,7 @@ class EmailWindow : public TWindow {
 
     virtual TColorAttr mapColor(uchar index) noexcept override;
     std::string bodyText() const;
+    void send();
 
 public:
     EmailWindow(const TRect &bounds, Application& app);
