@@ -16,6 +16,7 @@ TStatusLine* Application_frontend::initStatusLine(TRect r){
     return new TStatusLine(r,
         *new TStatusDef(0, 0xFFFF) +
             *new TStatusItem("~Alt-X~ Exit", kbAltX, cmQuit) +
+            *new TStatusItem("~F2~ New email", kbF2, cmNewMail) +
             *new TStatusItem(0, kbF10, cmMenu)
             );
 }
