@@ -94,10 +94,18 @@ Boolean LoginDialog::valid(ushort command){
         std::string selected_user = username();
 
         if(selected_user.empty()){
-            return false; 
+            messageBox("No account selected. Create one with \"New account\".",
+                       mfInformation | mfOKButton);
+            return false;
         }
 
-        app.set_current_email_address(selected_user);
+        try {
+            app.set_current_email_address(selected_user);
+        } catch (const std::exception& e) {
+            logging::log(std::string("Login failed: ") + e.what());
+            messageBox(std::string("Could not log in:\n") + e.what(), mfError | mfOKButton);
+            return false;
+        }
     }
 
     return true;

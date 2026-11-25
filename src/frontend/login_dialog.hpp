@@ -10,6 +10,7 @@
 #define Uses_TStringCollection
 #define Uses_TProgram
 #define Uses_TDeskTop
+#define Uses_MsgBox
 #include <tvision/tv.h>
 #include <nlohmann/json.hpp>
 #include <string>
