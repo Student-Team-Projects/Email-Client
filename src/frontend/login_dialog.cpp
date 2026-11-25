@@ -50,6 +50,10 @@ LoginDialog::LoginDialog(TRect r, Application& app) :
 
     insert(new TButton(TRect(startX, btnY, startX + wCancel, btnY + 2),
                        "Exit", cmCancel, bfNormal));
+
+    // Start with the account list focused. Otherwise the last inserted view
+    // ("Exit") has the focus and pressing Enter closes the application.
+    list->select();
 }
 
 std::string LoginDialog::username() const {
