@@ -68,6 +68,9 @@ NewAccountDialog::NewAccountDialog(TRect r, Application& app) :
 
     insert(new TButton(TRect(exitX, bottomY, exitX + wExit, bottomY + 2),
                        "Exit", cmCancel, bfNormal));
+
+    // Start typing in the first field instead of having "Exit" focused
+    user->select();
 }
 
 
