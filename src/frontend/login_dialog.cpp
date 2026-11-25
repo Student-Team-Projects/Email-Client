@@ -74,6 +74,14 @@ void LoginDialog::handleEvent(TEvent& event){
     }
 
     TDialog::handleEvent(event);
+
+    // Double click or Space on an account works like "Choose"
+    // (Enter already does, through the default button).
+    if (event.what == evBroadcast && event.message.command == cmListItemSelected
+        && event.message.infoPtr == list) {
+        clearEvent(event);
+        endModal(cmOK);
+    }
 }
 
 Boolean LoginDialog::valid(ushort command){
