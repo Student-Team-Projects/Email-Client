@@ -1,13 +1,14 @@
 name: AUR release
 
-# Every push to `main` releases the version from project(VERSION) in
-# CMakeLists.txt to the AUR: it tags the commit as <version>, fills in
-# aur/PKGBUILD and pushes it with a fresh .SRCINFO to the AUR repository.
-# A push whose <version>-<pkgrel> is already on the AUR publishes nothing.
+# Every push to `main` that comes from a PR labelled release:patch,
+# release:minor or release:major releases a new version to the AUR: the last
+# version tag (e.g. 2.1.0) is bumped accordingly, the commit is tagged with
+# the result, and aur/PKGBUILD is filled in and pushed with a fresh .SRCINFO to
+# the AUR repository. Pushes without such a label only run the CI.
 #
 # Needs the AUR_SSH_PRIVATE_KEY secret: the private SSH key whose public key is
 # set on the AUR account that maintains the package. The outcome of a release
-# (or a failure of this workflow) is posted to Discord via DISCORD_WEBHOOK_URL.
+# (or a failure of this workflow) is posted to Discord via DISCORD_WEBHOOK.
 on:
   push:
     branches: [main]
@@ -27,18 +28,19 @@ jobs:
     container: archlinux:latest
     permissions:
       contents: write # pushing the version tag
+      pull-requests: read # the labels of the merged PR
     outputs:
       publish: ${{ steps.version.outputs.publish }}
-      version: ${{ steps.version.outputs.pkgver }}-${{ steps.version.outputs.pkgrel }}
+      version: ${{ steps.version.outputs.pkgver }}
     env:
       AUR_REPO: ssh://aur@aur.archlinux.org/email-client.git
     steps:
       - name: Install dependencies
-        run: pacman -Syu --noconfirm --needed base-devel git openssh sudo
+        run: pacman -Syu --noconfirm --needed base-devel git openssh sudo jq
 
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0 # tags, to see whether this version is already tagged
+          fetch-depth: 0 # all tags, to find the last version
 
       - name: Set up SSH for the AUR
         env:
@@ -56,45 +58,60 @@ jobs:
 
       - name: Decide what to release
         id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          semver='^[0-9]+\.[0-9]+\.[0-9]+$'
           git clone "$AUR_REPO" aur-repo
+          aur=""
+          [ -f aur-repo/.SRCINFO ] && aur=$(sed -n 's/^\tpkgver = //p' aur-repo/.SRCINFO)
 
-          pkgver=$(sed -n '/^project(/,/)/s/^ *VERSION *\([0-9.]*\).*/\1/p' CMakeLists.txt)
-          pkgrel=$(sed -n 's/^pkgrel=//p' aur/PKGBUILD)
-          [ -n "$pkgver" ] && [ -n "$pkgrel" ] || { echo "::error::Cannot read the version"; exit 1; }
-          new="$pkgver-$pkgrel"
+          out() {
+            { echo "pkgver=$1"; echo "publish=$2"; echo "tag_exists=$3"; } >> "$GITHUB_OUTPUT"
+          }
 
-          old=""
-          if [ -f aur-repo/.SRCINFO ]; then
-            old="$(sed -n 's/^\tpkgver = //p' aur-repo/.SRCINFO)-$(sed -n 's/^\tpkgrel = //p' aur-repo/.SRCINFO)"
-          fi
-          echo "AUR has ${old:-nothing}, this commit is $new"
-
-          publish=true
-          if [ -n "$old" ]; then
-            case $(vercmp "$new" "$old") in
-              0) publish=false
-                 echo "::notice::$new is already on the AUR; bump project(VERSION) in CMakeLists.txt (or pkgrel in aur/PKGBUILD) to release" ;;
-              -1) echo "::error::$new is older than $old on the AUR"; exit 1 ;;
-            esac
-          fi
-
-          # An existing tag is the released source of that version: a pkgrel bump
-          # republishes it unchanged, it does not move the tag to this commit
-          if tag=$(git rev-parse -q --verify "refs/tags/$pkgver^{commit}"); then
+          # A re-run of a release that already tagged this commit keeps its version
+          pkgver=$(git tag --points-at "$GITHUB_SHA" | grep -E "$semver" | sort -V | tail -1 || true)
+          if [ -n "$pkgver" ]; then
             tag_exists=true
-            [ "$tag" = "$GITHUB_SHA" ] || [ "$publish" = false ] || \
-              echo "::warning::Tag $pkgver already exists on $tag, so it is packaged instead of this commit; bump project(VERSION) to release the new code"
+            echo "This commit is already tagged $pkgver"
           else
             tag_exists=false
+            labels=$(curl -fsSL --retry 3 \
+              -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+              | jq -r '.[0].labels[]?.name')
+            bump=""
+            for level in patch minor major; do # the biggest one wins
+              grep -qx "release:$level" <<< "$labels" && bump=$level
+            done
+            if [ -z "$bump" ]; then
+              echo "::notice::No release:patch/minor/major label on the merged PR, nothing to release"
+              out "" false false
+              exit 0
+            fi
+
+            last=$(git tag -l | grep -E "$semver" | sort -V | tail -1 || true)
+            last=${last:-0.0.0}
+            # In case a newer version was published to the AUR by hand
+            if [[ "$aur" =~ $semver ]] && [ "$(vercmp "$aur" "$last")" -gt 0 ]; then
+              last=$aur
+            fi
+            IFS=. read -r major minor patch <<< "$last"
+            case $bump in
+              major) pkgver="$((major + 1)).0.0" ;;
+              minor) pkgver="$major.$((minor + 1)).0" ;;
+              patch) pkgver="$major.$minor.$((patch + 1))" ;;
+            esac
+            echo "release:$bump label: $last -> $pkgver"
           fi
 
-          {
-            echo "pkgver=$pkgver"
-            echo "pkgrel=$pkgrel"
-            echo "publish=$publish"
-            echo "tag_exists=$tag_exists"
-          } >> "$GITHUB_OUTPUT"
+          if [ "$aur" = "$pkgver" ]; then
+            echo "::notice::$pkgver is already on the AUR"
+            out "$pkgver" false "$tag_exists"
+          else
+            out "$pkgver" true "$tag_exists"
+          fi
 
       # Build the package from a local copy of the source before tagging, so a
       # broken package leaves neither a tag nor an AUR update behind
@@ -102,15 +119,12 @@ jobs:
         if: steps.version.outputs.publish == 'true'
         env:
           PKGVER: ${{ steps.version.outputs.pkgver }}
-          TAG_EXISTS: ${{ steps.version.outputs.tag_exists }}
         run: |
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
 
-          ref=HEAD
-          [ "$TAG_EXISTS" = true ] && ref="refs/tags/$PKGVER"
           install -d -o builder /home/builder/pkg
-          git archive --prefix="Email-Client-$PKGVER/" -o "/home/builder/pkg/email-client-$PKGVER.tar.gz" "$ref"
+          git archive --prefix="Email-Client-$PKGVER/" -o "/home/builder/pkg/email-client-$PKGVER.tar.gz" HEAD
           sed -e "s/^pkgver=.*/pkgver=$PKGVER/" \
               -e 's|^source=.*|source=("${pkgname}-${pkgver}.tar.gz")|' \
               aur/PKGBUILD > /home/builder/pkg/PKGBUILD
@@ -142,7 +156,6 @@ jobs:
         if: steps.version.outputs.publish == 'true'
         env:
           PKGVER: ${{ steps.version.outputs.pkgver }}
-          PKGREL: ${{ steps.version.outputs.pkgrel }}
         run: |
           url="https://github.com/Student-Team-Projects/Email-Client/archive/refs/tags/$PKGVER.tar.gz"
           sum=$(curl -fsSL --retry 5 --retry-all-errors "$url" | sha256sum | cut -d' ' -f1)
@@ -159,7 +172,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add PKGBUILD .SRCINFO
-          git commit -m "Update to $PKGVER-$PKGREL" \
+          git commit -m "Update to $PKGVER" \
             -m "From ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
           git push origin HEAD:master
 
@@ -177,7 +190,7 @@ jobs:
     steps:
       - name: Send Discord message
         env:
-          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           CI_RESULT: ${{ needs.ci.result }}
           RELEASE_RESULT: ${{ needs.release.result }}
           VERSION: ${{ needs.release.outputs.version }}
@@ -186,7 +199,7 @@ jobs:
           SHORT_SHA: ${{ github.sha }}
         run: |
           if [ -z "$WEBHOOK" ]; then
-            echo "::warning::DISCORD_WEBHOOK_URL secret is not set, skipping"
+            echo "::warning::DISCORD_WEBHOOK secret is not set, skipping"
             exit 0
           fi
 

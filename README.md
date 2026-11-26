@@ -92,6 +92,34 @@ Conventions (see `tests/backend/html_parser_test.cpp` for an example):
   whose size was just checked.
 - Unit tests must not use the network or the user's config.
 
+### Releases and notifications
+
+Releases are driven by labels on pull requests. When a PR labelled
+`release:patch`, `release:minor` or `release:major` is merged into `main`,
+`.github/workflows/aur-release.yml`, after the CI passes:
+
+1. bumps the last version tag accordingly (e.g. `2.1.0` → `2.1.1` / `2.2.0` / `3.0.0`),
+2. builds and installs the package from `aur/PKGBUILD` in an Arch container,
+3. tags the merge commit with the new version,
+4. pushes the updated `PKGBUILD` and `.SRCINFO` to the
+   [AUR package](https://aur.archlinux.org/packages/email-client).
+
+A PR without one of these labels only runs the CI. With several, the biggest
+bump wins. The label can also be added after the merge: then re-run the
+workflow run of the merge commit. Nothing has to be edited by hand; the
+version lives only in the git tags.
+
+The team's Discord channel gets a message for every PR merged into `main`
+(`.github/workflows/discord-pr-merged.yml`) and one for every release: success
+when the new version is on the AUR, an error when the CI or the release failed.
+
+Repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `AUR_SSH_PRIVATE_KEY` | Private SSH key whose public key is on the AUR account maintaining the package |
+| `DISCORD_WEBHOOK` | Discord webhook URL of the channel; without it the messages are skipped |
+
 ## License
 
 This project is licensed under the GNU GPL version 3 (or later). See the
