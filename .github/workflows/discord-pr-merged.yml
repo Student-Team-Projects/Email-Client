@@ -27,10 +27,8 @@ jobs:
           PR_AUTHOR_AVATAR: ${{ github.event.pull_request.user.avatar_url }}
           MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
           HEAD_BRANCH: ${{ github.event.pull_request.head.label }}
-          COMMITS: ${{ github.event.pull_request.commits }}
           ADDITIONS: ${{ github.event.pull_request.additions }}
           DELETIONS: ${{ github.event.pull_request.deletions }}
-          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
         run: |
           if [ -z "$WEBHOOK" ]; then
             echo "::warning::DISCORD_WEBHOOK_URL secret is not set, skipping"
@@ -45,27 +43,23 @@ jobs:
             --arg avatar "$PR_AUTHOR_AVATAR" \
             --arg merged_by "$MERGED_BY" \
             --arg branch "$HEAD_BRANCH" \
-            --arg commits "$COMMITS" \
             --arg additions "$ADDITIONS" \
             --arg deletions "$DELETIONS" \
-            --arg files "$CHANGED_FILES" \
             '{
               username: "Merge Alarm 🚨",
               allowed_mentions: { parse: [] },
-              content: "🚨🚨🚨 **ALARM! ALARM! NOWY MERGE DO MAIN!** 🚨🚨🚨\n🎉🎊🥳 TO SIĘ DZIEJE NAPRAWDĘ!!! 🥳🎊🎉",
+              content: "🚨🎉 **Nowy merge do main!** 🎊🚀",
               embeds: [{
-                title: ("🎉 #" + $number + " " + $title + " 🎉"),
+                title: ("#" + $number + " " + $title),
                 url: $url,
                 color: 16766720,
                 author: { name: $author, icon_url: $avatar },
-                description: ("🔥🔥🔥 **" + $author + "** właśnie dowiózł(a) kod na `main`!!! 🔥🔥🔥\n\n🚀 Lecimy w kosmos! 🚀 Szampan otwarty! 🍾🥂\n🎊 KONFETTI WSZĘDZIE 🎊 🎉🎉🎉🎉🎉"),
+                description: ("🥳 Brawo, **" + $author + "**! Kod już na `main` 🔥"),
                 fields: [
-                  { name: "🌿 Gałąź", value: ("`" + $branch + "`"), inline: true },
+                  { name: "🌿 Branch", value: ("`" + $branch + "`"), inline: true },
                   { name: "✅ Zmergował(a)", value: $merged_by, inline: true },
-                  { name: "📦 Commity", value: $commits, inline: true },
-                  { name: "📈 Zmiany", value: ("🟢 +" + $additions + "  🔴 -" + $deletions + "  📄 " + $files + " plików"), inline: false }
-                ],
-                footer: { text: "🎊 Kolejny krok bliżej stable! 🎊" }
+                  { name: "📈 Zmiany", value: ("+" + $additions + " / -" + $deletions), inline: true }
+                ]
               }]
             }')
 
