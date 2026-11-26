@@ -92,6 +92,37 @@ Conventions (see `tests/backend/html_parser_test.cpp` for an example):
   whose size was just checked.
 - Unit tests must not use the network or the user's config.
 
+### Releases and notifications
+
+Every push to `main` (i.e. every merged pull request) runs
+`.github/workflows/aur-release.yml`. After the CI passes, it compares the
+version with the [AUR package](https://aur.archlinux.org/packages/email-client)
+and releases only if it is newer:
+
+1. builds and installs the package from `aur/PKGBUILD` in an Arch container,
+2. tags the commit with the version, e.g. `2.1.0`,
+3. pushes the updated `PKGBUILD` and `.SRCINFO` to the AUR.
+
+The version is `project(VERSION)` in `CMakeLists.txt` plus `pkgrel` in
+`aur/PKGBUILD`. To release:
+
+- new code: bump `VERSION` and set `pkgrel=1`,
+- a packaging-only fix of the released version: bump `pkgrel` only (the
+  existing tag is packaged again, not the new commit).
+
+A merge without a version bump runs the CI and publishes nothing.
+
+The team's Discord channel gets a message for every PR merged into `main`
+(`.github/workflows/discord-pr-merged.yml`) and one for every release: success
+when the new version is on the AUR, an error when the CI or the release failed.
+
+Repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `AUR_SSH_PRIVATE_KEY` | Private SSH key whose public key is on the AUR account maintaining the package |
+| `DISCORD_WEBHOOK_URL` | Discord webhook URL of the channel; without it the messages are skipped |
+
 ## License
 
 This project is licensed under the GNU GPL version 3 (or later). See the
