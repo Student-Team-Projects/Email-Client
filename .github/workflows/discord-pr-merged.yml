@@ -48,7 +48,7 @@ jobs:
             '{
               username: "Merge Alarm 🚨",
               allowed_mentions: { parse: [] },
-              content: "🚨🚨🎉🎊 **NOWY MERGE DO MAIN!** 🎊🎉🚨🚨\n✨🥳🍾 Leci na produkcję! 🍾🥳✨",
+              content: "🚨🚨🎉🎊 **NOWY MERGE DO MAIN!** 🎊🎉🚨🚨",
               embeds: [{
                 title: ("#" + $number + " " + $title),
                 url: $url,
