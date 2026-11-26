@@ -2,7 +2,7 @@
 #   i.e. https://github.com/Student-Team-Projects/email-client/issues
 
 # Published to the AUR by .github/workflows/aur-release.yml on every push to the
-# `stable` branch. pkgver and sha256sums are filled in by the workflow (pkgver
+# `main` branch. pkgver and sha256sums are filled in by the workflow (pkgver
 # comes from project(VERSION) in CMakeLists.txt), so do not edit them here.
 # Bump pkgrel only for a packaging-only fix of an already released version,
 # and reset it to 1 together with a version bump.

@@ -1,6 +1,6 @@
 name: AUR release
 
-# Every push to `stable` releases the version from project(VERSION) in
+# Every push to `main` releases the version from project(VERSION) in
 # CMakeLists.txt to the AUR: it tags the commit as <version>, fills in
 # aur/PKGBUILD and pushes it with a fresh .SRCINFO to the AUR repository.
 # A push whose <version>-<pkgrel> is already on the AUR publishes nothing.
@@ -9,7 +9,7 @@ name: AUR release
 # set on the AUR account that maintains the package.
 on:
   push:
-    branches: [stable]
+    branches: [main]
 
 # Never two releases at once; a newer push waits instead of cancelling
 concurrency:

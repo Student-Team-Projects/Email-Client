@@ -1,11 +1,11 @@
 name: CI
 
 # Every push to any branch, plus pull requests (needed for PRs from forks,
-# whose pushes do not run workflows in this repository). Pushes to `stable` are
+# whose pushes do not run workflows in this repository). Pushes to `main` are
 # tested by aur-release.yml, which calls this workflow before releasing.
 on:
   push:
-    branches-ignore: [stable]
+    branches-ignore: [main]
   pull_request:
   workflow_call:
 
