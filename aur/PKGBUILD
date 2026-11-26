@@ -1,8 +1,14 @@
 # Please report maintenance problems to the project GitHub issue tracker
 #   i.e. https://github.com/Student-Team-Projects/email-client/issues
 
+# Published to the AUR by .github/workflows/aur-release.yml on every push to the
+# `stable` branch. pkgver and sha256sums are filled in by the workflow (pkgver
+# comes from project(VERSION) in CMakeLists.txt), so do not edit them here.
+# Bump pkgrel only for a packaging-only fix of an already released version,
+# and reset it to 1 together with a version bump.
+
 pkgname=email-client
-pkgver=2.0.0
+pkgver=0.0.0
 pkgrel=1
 pkgdesc="A CLI email client for Arch Linux"
 arch=('x86_64')
@@ -16,6 +22,7 @@ depends=(
   'icu'
   'gnutls'
   'ncurses'
+  'gpm'
   'libffi'
   'sqlite'
   'libxml2'
@@ -24,46 +31,25 @@ depends=(
   'vmime'
 )
 
-# Build Dependencies
+# Build Dependencies (git: CMake fetches the bundled libraries with it)
 makedepends=(
-  'base-devel'
   'cmake'
-  'make'
-  'gcc'
   'git'
   'pkgconf'
 )
 
-# Sources and Checksums
-# WARN: PIN THESE BACK BEFORE PUSHING PKGBUILD TO AUR
-# source=("https://github.com/Student-Team-Projects/Email-Client/archive/refs/tags/${pkgver}.tar.gz")
-# sha256sums=('TODO!')
-
-source=("http://127.0.0.1:8000/${pkgver}.tar.gz")
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/Student-Team-Projects/Email-Client/archive/refs/tags/${pkgver}.tar.gz")
 sha256sums=('SKIP')
 
-prepare() {
-  cd "$srcdir" || exit 1
-  tar xzvf "${pkgver}.tar.gz"
-}
-
 build() {
-  cd "$srcdir" || exit 1
-  mkdir -p build
-  cd build || exit 1
-
-  cmake -DCMAKE_BUILD_TYPE=Release \
+  cmake -S "Email-Client-${pkgver}" -B build \
+    -DCMAKE_BUILD_TYPE=Release \
     -DEXTERNAL_SQLITE=ON \
     -DEXTERNAL_LIBXML2=ON \
-    -DEXTERNAL_VMIME=ON ..
-  make
+    -DEXTERNAL_VMIME=ON
+  cmake --build build --parallel "$(nproc)"
 }
 
 package() {
-  cd "$srcdir/build" || exit 1
-
-  # Install the email client binary
-  install -Dm755 "email_client" "$pkgdir/usr/bin/email_client"
-
-  # TODO: Consider adding manpages (e.g via scdoc ;)
+  install -Dm755 build/email_client "$pkgdir/usr/bin/email_client"
 }

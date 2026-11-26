@@ -1,10 +1,13 @@
 name: CI
 
 # Every push to any branch, plus pull requests (needed for PRs from forks,
-# whose pushes do not run workflows in this repository)
+# whose pushes do not run workflows in this repository). Pushes to `stable` are
+# tested by aur-release.yml, which calls this workflow before releasing.
 on:
   push:
+    branches-ignore: [stable]
   pull_request:
+  workflow_call:
 
 # A newer push to the same branch or PR cancels the older, now outdated run;
 # on main every commit is tested to the end
