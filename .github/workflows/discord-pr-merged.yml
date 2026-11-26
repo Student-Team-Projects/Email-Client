@@ -1,0 +1,75 @@
+name: Discord PR merged
+
+# Announces every pull request merged into main on the team's Discord channel.
+# pull_request_target so that PRs from forks also have access to the webhook
+# secret; it is safe here because the job never checks out or runs PR code.
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  notify:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord message
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Passed through env, never interpolated into the script, because
+          # the PR title and author are controlled by whoever opened the PR
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_AUTHOR_AVATAR: ${{ github.event.pull_request.user.avatar_url }}
+          MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.label }}
+          COMMITS: ${{ github.event.pull_request.commits }}
+          ADDITIONS: ${{ github.event.pull_request.additions }}
+          DELETIONS: ${{ github.event.pull_request.deletions }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL secret is not set, skipping"
+            exit 0
+          fi
+
+          payload=$(jq -n \
+            --arg number "$PR_NUMBER" \
+            --arg title "$PR_TITLE" \
+            --arg url "$PR_URL" \
+            --arg author "$PR_AUTHOR" \
+            --arg avatar "$PR_AUTHOR_AVATAR" \
+            --arg merged_by "$MERGED_BY" \
+            --arg branch "$HEAD_BRANCH" \
+            --arg commits "$COMMITS" \
+            --arg additions "$ADDITIONS" \
+            --arg deletions "$DELETIONS" \
+            --arg files "$CHANGED_FILES" \
+            '{
+              username: "Merge Alarm 🚨",
+              allowed_mentions: { parse: [] },
+              content: "🚨🚨🚨 **ALARM! ALARM! NOWY MERGE DO MAIN!** 🚨🚨🚨\n🎉🎊🥳 TO SIĘ DZIEJE NAPRAWDĘ!!! 🥳🎊🎉",
+              embeds: [{
+                title: ("🎉 #" + $number + " " + $title + " 🎉"),
+                url: $url,
+                color: 16766720,
+                author: { name: $author, icon_url: $avatar },
+                description: ("🔥🔥🔥 **" + $author + "** właśnie dowiózł(a) kod na `main`!!! 🔥🔥🔥\n\n🚀 Lecimy w kosmos! 🚀 Szampan otwarty! 🍾🥂\n🎊 KONFETTI WSZĘDZIE 🎊 🎉🎉🎉🎉🎉"),
+                fields: [
+                  { name: "🌿 Gałąź", value: ("`" + $branch + "`"), inline: true },
+                  { name: "✅ Zmergował(a)", value: $merged_by, inline: true },
+                  { name: "📦 Commity", value: $commits, inline: true },
+                  { name: "📈 Zmiany", value: ("🟢 +" + $additions + "  🔴 -" + $deletions + "  📄 " + $files + " plików"), inline: false }
+                ],
+                footer: { text: "🎊 Kolejny krok bliżej stable! 🎊" }
+              }]
+            }')
+
+          curl --fail-with-body -sS \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$WEBHOOK"
