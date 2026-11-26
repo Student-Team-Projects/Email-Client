@@ -94,23 +94,20 @@ Conventions (see `tests/backend/html_parser_test.cpp` for an example):
 
 ### Releases and notifications
 
-Every push to `main` (i.e. every merged pull request) runs
-`.github/workflows/aur-release.yml`. After the CI passes, it compares the
-version with the [AUR package](https://aur.archlinux.org/packages/email-client)
-and releases only if it is newer:
+Releases are driven by labels on pull requests. When a PR labelled
+`release:patch`, `release:minor` or `release:major` is merged into `main`,
+`.github/workflows/aur-release.yml`, after the CI passes:
 
-1. builds and installs the package from `aur/PKGBUILD` in an Arch container,
-2. tags the commit with the version, e.g. `2.1.0`,
-3. pushes the updated `PKGBUILD` and `.SRCINFO` to the AUR.
+1. bumps the last version tag accordingly (e.g. `2.1.0` → `2.1.1` / `2.2.0` / `3.0.0`),
+2. builds and installs the package from `aur/PKGBUILD` in an Arch container,
+3. tags the merge commit with the new version,
+4. pushes the updated `PKGBUILD` and `.SRCINFO` to the
+   [AUR package](https://aur.archlinux.org/packages/email-client).
 
-The version is `project(VERSION)` in `CMakeLists.txt` plus `pkgrel` in
-`aur/PKGBUILD`. To release:
-
-- new code: bump `VERSION` and set `pkgrel=1`,
-- a packaging-only fix of the released version: bump `pkgrel` only (the
-  existing tag is packaged again, not the new commit).
-
-A merge without a version bump runs the CI and publishes nothing.
+A PR without one of these labels only runs the CI. With several, the biggest
+bump wins. The label can also be added after the merge: then re-run the
+workflow run of the merge commit. Nothing has to be edited by hand; the
+version lives only in the git tags.
 
 The team's Discord channel gets a message for every PR merged into `main`
 (`.github/workflows/discord-pr-merged.yml`) and one for every release: success
@@ -121,7 +118,7 @@ Repository secrets (Settings → Secrets and variables → Actions):
 | Secret | Value |
 |---|---|
 | `AUR_SSH_PRIVATE_KEY` | Private SSH key whose public key is on the AUR account maintaining the package |
-| `DISCORD_WEBHOOK_URL` | Discord webhook URL of the channel; without it the messages are skipped |
+| `DISCORD_WEBHOOK` | Discord webhook URL of the channel; without it the messages are skipped |
 
 ## License
 

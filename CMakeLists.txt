@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
+# The version is the git tag; the AUR release workflow picks it from PR labels
 project(email_client
   LANGUAGES CXX
-  VERSION 2.1.0
 )
 
 set(CMAKE_CXX_STANDARD 20)

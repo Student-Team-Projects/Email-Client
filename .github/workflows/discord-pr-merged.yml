@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Send Discord message
         env:
-          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           # Passed through env, never interpolated into the script, because
           # the PR title and author are controlled by whoever opened the PR
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -31,7 +31,7 @@ jobs:
           DELETIONS: ${{ github.event.pull_request.deletions }}
         run: |
           if [ -z "$WEBHOOK" ]; then
-            echo "::warning::DISCORD_WEBHOOK_URL secret is not set, skipping"
+            echo "::warning::DISCORD_WEBHOOK secret is not set, skipping"
             exit 0
           fi
 
