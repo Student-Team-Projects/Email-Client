@@ -194,12 +194,12 @@ jobs:
             payload=$(jq -n --arg version "$VERSION" --arg run "$RUN_URL" '{
               username: "Release Alarm 📦",
               allowed_mentions: { parse: [] },
-              content: "📦🎉 **Nowa wersja w AUR!** 🚀",
+              content: "🚨🚨🎉🎊 **NOWA WERSJA W AUR!** 🎊🎉🚨🚨\n📦✨🥳🍾 Release poszedł! 🍾🥳✨📦",
               embeds: [{
                 title: ("email-client " + $version),
                 url: "https://aur.archlinux.org/packages/email-client",
                 color: 3066993,
-                description: "Gotowe do instalacji: `yay -S email-client` 🔥",
+                description: "🎊🚀 Gotowe do instalacji: `yay -S email-client` 🔥✨🎉",
                 fields: [
                   { name: "🔧 Workflow", value: ("[logi](" + $run + ")"), inline: true }
                 ]
@@ -215,12 +215,12 @@ jobs:
                 --arg commit "$COMMIT_URL" --arg sha "${SHORT_SHA:0:7}" --arg version "$VERSION" '{
               username: "Release Alarm 📦",
               allowed_mentions: { parse: [] },
-              content: (if $stage == "CI" then "❌ **CI na main nie przeszło**" else "❌ **Release do AUR nie poszedł**" end),
+              content: (if $stage == "CI" then "🚨❌🚨 **CI NA MAIN NIE PRZESZŁO** 🚨❌🚨" else "🚨❌🚨 **RELEASE DO AUR NIE POSZEDŁ** 🚨❌🚨" end),
               embeds: [{
                 title: ("Padło na etapie: " + $stage),
                 url: $run,
                 color: 15158332,
-                description: "AUR bez zmian. Szczegóły w logach workflow 👆",
+                description: "🧯 AUR bez zmian. Szczegóły w logach workflow 👆🔍",
                 fields: ([
                   { name: "📌 Commit", value: ("[`" + $sha + "`](" + $commit + ")"), inline: true }
                 ] + (if $version != "-" and $version != "" then

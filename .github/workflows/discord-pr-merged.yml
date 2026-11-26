@@ -48,13 +48,13 @@ jobs:
             '{
               username: "Merge Alarm 🚨",
               allowed_mentions: { parse: [] },
-              content: "🚨🎉 **Nowy merge do main!** 🎊🚀",
+              content: "🚨🚨🎉🎊 **NOWY MERGE DO MAIN!** 🎊🎉🚨🚨\n✨🥳🍾 Leci na produkcję! 🍾🥳✨",
               embeds: [{
                 title: ("#" + $number + " " + $title),
                 url: $url,
                 color: 16766720,
                 author: { name: $author, icon_url: $avatar },
-                description: ("🥳 Brawo, **" + $author + "**! Kod już na `main` 🔥"),
+                description: ("🎉🎊 Brawo, **" + $author + "**! Kod już na `main` 🔥🚀✨"),
                 fields: [
                   { name: "🌿 Branch", value: ("`" + $branch + "`"), inline: true },
                   { name: "✅ Zmergował(a)", value: $merged_by, inline: true },
