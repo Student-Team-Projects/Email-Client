@@ -6,7 +6,8 @@ name: AUR release
 # A push whose <version>-<pkgrel> is already on the AUR publishes nothing.
 #
 # Needs the AUR_SSH_PRIVATE_KEY secret: the private SSH key whose public key is
-# set on the AUR account that maintains the package.
+# set on the AUR account that maintains the package. The outcome of a release
+# (or a failure of this workflow) is posted to Discord via DISCORD_WEBHOOK_URL.
 on:
   push:
     branches: [main]
@@ -26,6 +27,9 @@ jobs:
     container: archlinux:latest
     permissions:
       contents: write # pushing the version tag
+    outputs:
+      publish: ${{ steps.version.outputs.publish }}
+      version: ${{ steps.version.outputs.pkgver }}-${{ steps.version.outputs.pkgrel }}
     env:
       AUR_REPO: ssh://aur@aur.archlinux.org/email-client.git
     steps:
@@ -158,3 +162,74 @@ jobs:
           git commit -m "Update to $PKGVER-$PKGREL" \
             -m "From ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
           git push origin HEAD:master
+
+  # One message per release attempt: success when a new version reached the
+  # AUR, failure when the CI or the release broke. Nothing when there was
+  # nothing new to release.
+  notify:
+    needs: [ci, release]
+    if: >-
+      always() && (needs.release.outputs.publish == 'true'
+        || contains(fromJSON('["failure", "cancelled"]'), needs.ci.result)
+        || contains(fromJSON('["failure", "cancelled"]'), needs.release.result))
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Send Discord message
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          CI_RESULT: ${{ needs.ci.result }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+          VERSION: ${{ needs.release.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          SHORT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL secret is not set, skipping"
+            exit 0
+          fi
+
+          if [ "$CI_RESULT" = success ] && [ "$RELEASE_RESULT" = success ]; then
+            payload=$(jq -n --arg version "$VERSION" --arg run "$RUN_URL" '{
+              username: "Release Alarm 📦",
+              allowed_mentions: { parse: [] },
+              content: "📦🎉 **Nowa wersja w AUR!** 🚀",
+              embeds: [{
+                title: ("email-client " + $version),
+                url: "https://aur.archlinux.org/packages/email-client",
+                color: 3066993,
+                description: "Gotowe do instalacji: `yay -S email-client` 🔥",
+                fields: [
+                  { name: "🔧 Workflow", value: ("[logi](" + $run + ")"), inline: true }
+                ]
+              }]
+            }')
+          else
+            if [ "$CI_RESULT" != success ]; then
+              stage="CI"
+            else
+              stage="Release"
+            fi
+            payload=$(jq -n --arg stage "$stage" --arg run "$RUN_URL" \
+                --arg commit "$COMMIT_URL" --arg sha "${SHORT_SHA:0:7}" --arg version "$VERSION" '{
+              username: "Release Alarm 📦",
+              allowed_mentions: { parse: [] },
+              content: (if $stage == "CI" then "❌ **CI na main nie przeszło**" else "❌ **Release do AUR nie poszedł**" end),
+              embeds: [{
+                title: ("Padło na etapie: " + $stage),
+                url: $run,
+                color: 15158332,
+                description: "AUR bez zmian. Szczegóły w logach workflow 👆",
+                fields: ([
+                  { name: "📌 Commit", value: ("[`" + $sha + "`](" + $commit + ")"), inline: true }
+                ] + (if $version != "-" and $version != "" then
+                  [{ name: "📦 Wersja", value: $version, inline: true }] else [] end))
+              }]
+            }')
+          fi
+
+          curl --fail-with-body -sS \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$WEBHOOK"
