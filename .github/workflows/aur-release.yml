@@ -1,0 +1,235 @@
+name: AUR release
+
+# Every push to `main` releases the version from project(VERSION) in
+# CMakeLists.txt to the AUR: it tags the commit as <version>, fills in
+# aur/PKGBUILD and pushes it with a fresh .SRCINFO to the AUR repository.
+# A push whose <version>-<pkgrel> is already on the AUR publishes nothing.
+#
+# Needs the AUR_SSH_PRIVATE_KEY secret: the private SSH key whose public key is
+# set on the AUR account that maintains the package. The outcome of a release
+# (or a failure of this workflow) is posted to Discord via DISCORD_WEBHOOK_URL.
+on:
+  push:
+    branches: [main]
+
+# Never two releases at once; a newer push waits instead of cancelling
+concurrency:
+  group: aur-release
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: ci
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    permissions:
+      contents: write # pushing the version tag
+    outputs:
+      publish: ${{ steps.version.outputs.publish }}
+      version: ${{ steps.version.outputs.pkgver }}-${{ steps.version.outputs.pkgrel }}
+    env:
+      AUR_REPO: ssh://aur@aur.archlinux.org/email-client.git
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed base-devel git openssh sudo
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # tags, to see whether this version is already tagged
+
+      - name: Set up SSH for the AUR
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          [ -n "$AUR_SSH_PRIVATE_KEY" ] || { echo "::error::The AUR_SSH_PRIVATE_KEY secret is not set"; exit 1; }
+          # Explicit paths: in a container job HOME is not the home directory ssh uses
+          install -dm700 /etc/aur-ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > /etc/aur-ssh/key
+          chmod 600 /etc/aur-ssh/key
+          # Pinned host key (SHA256:RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11+4, as on the Arch wiki)
+          echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' > /etc/aur-ssh/known_hosts
+          echo "GIT_SSH_COMMAND=ssh -F /dev/null -i /etc/aur-ssh/key -o IdentitiesOnly=yes -o UserKnownHostsFile=/etc/aur-ssh/known_hosts -o StrictHostKeyChecking=yes" >> "$GITHUB_ENV"
+          git config --global --add safe.directory '*'
+
+      - name: Decide what to release
+        id: version
+        run: |
+          git clone "$AUR_REPO" aur-repo
+
+          pkgver=$(sed -n '/^project(/,/)/s/^ *VERSION *\([0-9.]*\).*/\1/p' CMakeLists.txt)
+          pkgrel=$(sed -n 's/^pkgrel=//p' aur/PKGBUILD)
+          [ -n "$pkgver" ] && [ -n "$pkgrel" ] || { echo "::error::Cannot read the version"; exit 1; }
+          new="$pkgver-$pkgrel"
+
+          old=""
+          if [ -f aur-repo/.SRCINFO ]; then
+            old="$(sed -n 's/^\tpkgver = //p' aur-repo/.SRCINFO)-$(sed -n 's/^\tpkgrel = //p' aur-repo/.SRCINFO)"
+          fi
+          echo "AUR has ${old:-nothing}, this commit is $new"
+
+          publish=true
+          if [ -n "$old" ]; then
+            case $(vercmp "$new" "$old") in
+              0) publish=false
+                 echo "::notice::$new is already on the AUR; bump project(VERSION) in CMakeLists.txt (or pkgrel in aur/PKGBUILD) to release" ;;
+              -1) echo "::error::$new is older than $old on the AUR"; exit 1 ;;
+            esac
+          fi
+
+          # An existing tag is the released source of that version: a pkgrel bump
+          # republishes it unchanged, it does not move the tag to this commit
+          if tag=$(git rev-parse -q --verify "refs/tags/$pkgver^{commit}"); then
+            tag_exists=true
+            [ "$tag" = "$GITHUB_SHA" ] || [ "$publish" = false ] || \
+              echo "::warning::Tag $pkgver already exists on $tag, so it is packaged instead of this commit; bump project(VERSION) to release the new code"
+          else
+            tag_exists=false
+          fi
+
+          {
+            echo "pkgver=$pkgver"
+            echo "pkgrel=$pkgrel"
+            echo "publish=$publish"
+            echo "tag_exists=$tag_exists"
+          } >> "$GITHUB_OUTPUT"
+
+      # Build the package from a local copy of the source before tagging, so a
+      # broken package leaves neither a tag nor an AUR update behind
+      - name: Test build of the package
+        if: steps.version.outputs.publish == 'true'
+        env:
+          PKGVER: ${{ steps.version.outputs.pkgver }}
+          TAG_EXISTS: ${{ steps.version.outputs.tag_exists }}
+        run: |
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+
+          ref=HEAD
+          [ "$TAG_EXISTS" = true ] && ref="refs/tags/$PKGVER"
+          install -d -o builder /home/builder/pkg
+          git archive --prefix="Email-Client-$PKGVER/" -o "/home/builder/pkg/email-client-$PKGVER.tar.gz" "$ref"
+          sed -e "s/^pkgver=.*/pkgver=$PKGVER/" \
+              -e 's|^source=.*|source=("${pkgname}-${pkgver}.tar.gz")|' \
+              aur/PKGBUILD > /home/builder/pkg/PKGBUILD
+          chown -R builder /home/builder/pkg
+
+          # vmime is an AUR dependency, so pacman cannot install it
+          sudo -u builder bash -euo pipefail -c '
+            cd ~
+            git clone https://aur.archlinux.org/vmime.git
+            # A split package: vmime and vmime-libonly conflict, so install only vmime
+            (cd vmime && makepkg -s --noconfirm &&
+              sudo pacman -U --noconfirm "$(makepkg --packagelist | grep "/vmime-[0-9]")")
+            cd pkg && makepkg -si --noconfirm
+          '
+          # Every library must come from an installed package, not from the build tree
+          if ldd /usr/bin/email_client | grep -E 'not found|/home/'; then
+            echo "::error::The packaged email_client is missing libraries"; exit 1
+          fi
+
+      - name: Tag the release
+        if: steps.version.outputs.publish == 'true' && steps.version.outputs.tag_exists == 'false'
+        env:
+          PKGVER: ${{ steps.version.outputs.pkgver }}
+        run: |
+          git tag "$PKGVER" "$GITHUB_SHA"
+          git push origin "refs/tags/$PKGVER"
+
+      - name: Publish to the AUR
+        if: steps.version.outputs.publish == 'true'
+        env:
+          PKGVER: ${{ steps.version.outputs.pkgver }}
+          PKGREL: ${{ steps.version.outputs.pkgrel }}
+        run: |
+          url="https://github.com/Student-Team-Projects/Email-Client/archive/refs/tags/$PKGVER.tar.gz"
+          sum=$(curl -fsSL --retry 5 --retry-all-errors "$url" | sha256sum | cut -d' ' -f1)
+
+          sed -e "s/^pkgver=.*/pkgver=$PKGVER/" \
+              -e "s/^sha256sums=.*/sha256sums=('$sum')/" \
+              aur/PKGBUILD > aur-repo/PKGBUILD
+          # makepkg refuses to run as root
+          install -d -o builder /home/builder/srcinfo
+          cp aur-repo/PKGBUILD /home/builder/srcinfo/
+          (cd /home/builder/srcinfo && sudo -u builder makepkg --printsrcinfo) > aur-repo/.SRCINFO
+
+          cd aur-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update to $PKGVER-$PKGREL" \
+            -m "From ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          git push origin HEAD:master
+
+  # One message per release attempt: success when a new version reached the
+  # AUR, failure when the CI or the release broke. Nothing when there was
+  # nothing new to release.
+  notify:
+    needs: [ci, release]
+    if: >-
+      always() && (needs.release.outputs.publish == 'true'
+        || contains(fromJSON('["failure", "cancelled"]'), needs.ci.result)
+        || contains(fromJSON('["failure", "cancelled"]'), needs.release.result))
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Send Discord message
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          CI_RESULT: ${{ needs.ci.result }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+          VERSION: ${{ needs.release.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          SHORT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL secret is not set, skipping"
+            exit 0
+          fi
+
+          if [ "$CI_RESULT" = success ] && [ "$RELEASE_RESULT" = success ]; then
+            payload=$(jq -n --arg version "$VERSION" --arg run "$RUN_URL" '{
+              username: "Release Alarm 📦",
+              allowed_mentions: { parse: [] },
+              content: "🚨🚨🎉🎊 **NOWA WERSJA W AUR!** 🎊🎉🚨🚨\n📦✨🥳🍾 Release poszedł! 🍾🥳✨📦",
+              embeds: [{
+                title: ("email-client " + $version),
+                url: "https://aur.archlinux.org/packages/email-client",
+                color: 3066993,
+                description: "🎊🚀 Gotowe do instalacji: `yay -S email-client` 🔥✨🎉",
+                fields: [
+                  { name: "🔧 Workflow", value: ("[logi](" + $run + ")"), inline: true }
+                ]
+              }]
+            }')
+          else
+            if [ "$CI_RESULT" != success ]; then
+              stage="CI"
+            else
+              stage="Release"
+            fi
+            payload=$(jq -n --arg stage "$stage" --arg run "$RUN_URL" \
+                --arg commit "$COMMIT_URL" --arg sha "${SHORT_SHA:0:7}" --arg version "$VERSION" '{
+              username: "Release Alarm 📦",
+              allowed_mentions: { parse: [] },
+              content: (if $stage == "CI" then "🚨❌🚨 **CI NA MAIN NIE PRZESZŁO** 🚨❌🚨" else "🚨❌🚨 **RELEASE DO AUR NIE POSZEDŁ** 🚨❌🚨" end),
+              embeds: [{
+                title: ("Padło na etapie: " + $stage),
+                url: $run,
+                color: 15158332,
+                description: "🧯 AUR bez zmian. Szczegóły w logach workflow 👆🔍",
+                fields: ([
+                  { name: "📌 Commit", value: ("[`" + $sha + "`](" + $commit + ")"), inline: true }
+                ] + (if $version != "-" and $version != "" then
+                  [{ name: "📦 Wersja", value: $version, inline: true }] else [] end))
+              }]
+            }')
+          fi
+
+          curl --fail-with-body -sS \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$WEBHOOK"
